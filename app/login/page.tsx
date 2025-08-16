@@ -1,4 +1,3 @@
-// app/login/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -33,9 +32,8 @@ export default function LoginPage() {
 
     if (result.success) {
       toast.success(result.message);
-      setTimeout(() => {
-        router.push("/select-workspace");
-      }, 1000);
+      // PENTING: Lakukan pengalihan di sisi klien
+      router.push("/select-workspace");
     } else {
       setErrorMessage(result.message);
       setIsLoading(false);

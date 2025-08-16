@@ -1,4 +1,3 @@
-// app/select-workspace/page.tsx
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { selectWorkspace } from "@/app/actions";
 
 interface Workspace {
   id: string;
@@ -20,7 +20,6 @@ export default function SelectWorkspacePage() {
   const supabase = createClient();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
@@ -30,6 +29,7 @@ export default function SelectWorkspacePage() {
         return;
       }
 
+      // Ambil data workspace di sisi klien
       const { data, error } = await supabase
         .from("workspace_members")
         .select("workspaces(id, name, owner_id), role")
@@ -49,29 +49,17 @@ export default function SelectWorkspacePage() {
 
       setWorkspaces(userWorkspaces);
       setIsLoading(false);
-
-      // Jika hanya ada satu workspace, langsung arahkan ke sana
+      
+      // Jika hanya ada satu workspace, langsung panggil server action
       if (userWorkspaces.length === 1) {
-        handleSelectWorkspace(userWorkspaces[0].id);
+        const formData = new FormData();
+        formData.append('workspaceId', userWorkspaces[0].id);
+        await selectWorkspace(formData);
       }
     };
 
     fetchWorkspaces();
   }, [supabase, router]);
-
-  const handleSelectWorkspace = async (workspaceId: string) => {
-    setIsRedirecting(true);
-    // Simpan ID workspace yang dipilih ke cookie
-    const { error } = await supabase.from("profiles").update({ last_workspace_id: workspaceId }).eq("id", user?.id);
-    if (error) {
-      toast.error("Gagal menyimpan pilihan workspace: " + error.message);
-      setIsRedirecting(false);
-      return;
-    }
-    
-    // Alihkan ke halaman utama
-    router.push("/");
-  };
 
   if (isLoading) {
     return (
@@ -93,18 +81,18 @@ export default function SelectWorkspacePage() {
             <p className="text-muted-foreground">Anda belum menjadi anggota di workspace mana pun. Silakan hubungi admin.</p>
           ) : (
             workspaces.map((ws) => (
-              <Button
-                key={ws.id}
-                onClick={() => handleSelectWorkspace(ws.id)}
-                className="w-full h-auto py-4 text-left justify-start"
-                disabled={isRedirecting}
-              >
-                <div>
-                  <h3 className="font-semibold text-lg">{ws.name}</h3>
-                  <p className="text-sm text-primary-foreground/80">Role: {ws.role}</p>
-                </div>
-                {isRedirecting && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
-              </Button>
+              <form action={selectWorkspace} key={ws.id}>
+                <input type="hidden" name="workspaceId" value={ws.id} />
+                <Button
+                  type="submit"
+                  className="w-full h-auto py-4 text-left justify-start"
+                >
+                  <div>
+                    <h3 className="font-semibold text-lg">{ws.name}</h3>
+                    <p className="text-sm text-primary-foreground/80">Role: {ws.role}</p>
+                  </div>
+                </Button>
+              </form>
             ))
           )}
         </CardContent>

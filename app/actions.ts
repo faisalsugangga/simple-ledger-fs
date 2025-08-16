@@ -13,12 +13,20 @@ type JournalEntry = {
   type: 'debit' | 'credit';
 };
 
-// Fungsi untuk mendapatkan ID workspace yang aktif dari cookie
-async function getActiveWorkspaceId(): Promise<string | null> {
+/**
+ * Mendapatkan ID workspace yang aktif dari cookie.
+ * @returns {Promise<string | null>} ID workspace atau null jika tidak ada.
+ */
+export async function getActiveWorkspaceId(): Promise<string | null> {
   const cookieStore = cookies();
   return cookieStore.get('active_workspace')?.value || null;
 }
 
+/**
+ * Menangani proses login pengguna.
+ * @param {FormData} formData Data form yang berisi email dan password.
+ * @returns {Promise<{ success: boolean; message: string }>} Hasil login.
+ */
 export async function login(formData: FormData): Promise<{ success: boolean; message: string }> {
   const supabase = createClient();
   const email = String(formData.get("email")).toLowerCase();
@@ -28,15 +36,55 @@ export async function login(formData: FormData): Promise<{ success: boolean; mes
     return { success: false, message: "Email atau password salah." };
   }
   // Setelah login berhasil, arahkan pengguna ke halaman pemilihan workspace
-  redirect("/select-workspace"); // <--- PERUBAHAN
+  redirect("/select-workspace");
 }
 
+/**
+ * Menangani proses logout pengguna.
+ */
 export async function logout() {
   const supabase = createClient();
   // Hapus cookie workspace saat logout
-  cookies().delete('active_workspace'); // <--- PERUBAHAN
+  cookies().delete('active_workspace');
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+/**
+ * Server Action untuk menyimpan ID workspace yang dipilih ke cookie dan melakukan redirect.
+ * @param {FormData} formData FormData dari form yang berisi ID workspace.
+ */
+export async function selectWorkspace(formData: FormData) {
+  const workspaceId = formData.get('workspaceId') as string;
+  const cookieStore = cookies();
+  const supabase = createClient();
+  
+  // Verifikasi pengguna dan keanggotaan workspace sebelum menyetel cookie
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login?message=Sesi pengguna tidak valid.");
+  }
+
+  const { data: member, error } = await supabase
+    .from("workspace_members")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (error || !member) {
+    // Tangani jika pengguna bukan anggota dari workspace yang dipilih
+    redirect("/select-workspace?message=Anda tidak memiliki akses ke workspace ini.");
+  }
+  
+  cookieStore.set('active_workspace', workspaceId, {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 1 minggu
+    httpOnly: true,
+  });
+  
+  revalidatePath('/');
+  redirect('/');
 }
 
 export async function addJournalTransaction(
@@ -71,7 +119,7 @@ export async function addJournalTransaction(
   }
 
   const supabase = createClient();
-  const workspaceId = await getActiveWorkspaceId(); // <--- Dapatkan ID workspace yang aktif
+  const workspaceId = await getActiveWorkspaceId();
   if (!workspaceId) {
     return { success: false, message: "Tidak ada workspace yang dipilih." };
   }
@@ -80,7 +128,7 @@ export async function addJournalTransaction(
     p_description: description,
     p_date: date,
     p_entries: formattedEntries,
-    p_workspace_id: workspaceId // <--- TAMBAHAN: Teruskan workspace_id ke RPC
+    p_workspace_id: workspaceId
   });
 
   if (error) {
@@ -92,17 +140,21 @@ export async function addJournalTransaction(
   return { success: true, message: "Transaksi berhasil disimpan!" };
 }
 
-
-// FUNGSI BARU: Mengambil data transaksi untuk diekspor
+/**
+ * Mengambil data transaksi untuk diekspor ke file.
+ * @param {string} [startDate] Tanggal mulai.
+ * @param {string} [endDate] Tanggal akhir.
+ * @returns {Promise<{ success: boolean; data?: any[]; error?: string }>} Hasil operasi.
+ */
 export async function getTransactionsForExport(startDate?: string, endDate?: string) {
   const supabase = createClient();
-  const workspaceId = await getActiveWorkspaceId(); // <--- Dapatkan ID workspace yang aktif
+  const workspaceId = await getActiveWorkspaceId();
   if (!workspaceId) {
     return { success: false, error: "Tidak ada workspace yang dipilih." };
   }
 
   let query = supabase.from("transactions_with_details").select("*")
-    .eq('workspace_id', workspaceId) // <--- TAMBAHAN: Filter berdasarkan workspace_id
+    .eq('workspace_id', workspaceId)
     .order('date', { ascending: true });
 
   if (startDate) {
@@ -119,7 +171,6 @@ export async function getTransactionsForExport(startDate?: string, endDate?: str
     return { success: false, error: error.message };
   }
 
-  // ... kode formatting data tetap sama
   const formattedData = data.map(tx => {
     const debitEntry = tx.entries.find((e: any) => e.type === 'debit');
     const creditEntry = tx.entries.find((e: any) => e.type === 'credit');

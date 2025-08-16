@@ -1,4 +1,3 @@
-// app/page.tsx
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -41,9 +40,11 @@ export default async function HomePage({
     return redirect("/login");
   }
 
-  // <--- TAMBAHAN: Periksa ID workspace yang aktif
+  // LOGIKA PENTING: Periksa ID workspace yang aktif dari cookie.
   const activeWorkspaceId = await getActiveWorkspaceId();
   if (!activeWorkspaceId) {
+    // Jika tidak ada activeWorkspaceId di cookie, arahkan ke halaman pemilihan.
+    // Halaman ini tidak akan mencoba menebak workspace yang benar.
     return redirect("/select-workspace");
   }
   
@@ -60,8 +61,8 @@ export default async function HomePage({
   let countQuery = supabase
     .from("transactions_with_details")
     .select("*", { count: "exact", head: true })
-    .eq('workspace_id', activeWorkspaceId); // <--- TAMBAHAN
-
+    .eq('workspace_id', activeWorkspaceId);
+  
   if (searchParams?.startDate) {
     countQuery = countQuery.gte("date", searchParams.startDate as string);
   }
@@ -81,7 +82,7 @@ export default async function HomePage({
   let dataQuery = supabase
     .from("transactions_with_details")
     .select("*")
-    .eq('workspace_id', activeWorkspaceId) // <--- TAMBAHAN
+    .eq('workspace_id', activeWorkspaceId)
     .order(sortableColumn, { ascending: sortOrder === "asc" })
     .range(startRange, endRange);
 
