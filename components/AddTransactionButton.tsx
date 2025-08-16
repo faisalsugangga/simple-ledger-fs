@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TransactionForm } from "./TransactionForm.tsx";
+import { TransactionForm } from "./TransactionForm";
 
 export function AddTransactionButton() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

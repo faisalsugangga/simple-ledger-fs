@@ -1,7 +1,7 @@
 // app/page.tsx
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link"; // <- Penambahan import
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -12,27 +12,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AddTransactionButton } from "@/components/AddTransactionButton";
-import { TransactionActions } from "@/components/TransactionActions";
-import { LogoutButton } from "@/components/LogoutButton";
 import { NotificationHandler } from "@/components/NotificationHandler";
-
-type Transaction = { id: number; description: string; amount: number; category_id: number, created_at: string };
+import { Button } from "@/components/ui/button";
+import { UserNav } from "@/components/UserNav"; // <- 1. Impor UserNav
 
 export default async function HomePage() {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) {
     return redirect("/login");
   }
 
   const { data: transactions, error } = await supabase
     .from('transactions')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select(`
+      id,
+      date,
+      description,
+      journal_entries (
+        id,
+        amount,
+        type,
+        accounts (
+          name
+        )
+      )
+    `)
+    .order('date', { ascending: false });
 
-  if (error && !transactions) {
+  if (error) {
     return <p>Gagal mengambil data: {error.message}</p>;
   }
 
@@ -40,44 +49,53 @@ export default async function HomePage() {
     <main className="container mx-auto p-8">
       <NotificationHandler />
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Daftar Transaksi</h1>
+        <h1 className="text-2xl font-bold">Jurnal Transaksi</h1>
         <div className="flex items-center gap-4">
-          <Link href="/categories" className="text-sm text-gray-500 underline hover:text-black">
-            Kelola Kategori
-          </Link> {/* <- Link baru ditambahkan di sini */}
-          <span className="text-sm text-gray-500">{user.email}</span>
+          <Button asChild variant="outline">
+            {/* 2. Ganti nama link ini menjadi lebih jelas */}
+            <Link href="/accounts">Daftar Akun</Link>
+          </Button>
           <AddTransactionButton />
-          <LogoutButton />
+          {/* 3. Ganti email & logout dengan UserNav */}
+          <UserNav email={user.email || ''} />
         </div>
       </div>
       
       <Table>
-        <TableCaption>Daftar semua transaksi keuangan.</TableCaption>
+        <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead>Deskripsi</TableHead>
-            <TableHead>Tanggal Dibuat</TableHead>
-            <TableHead className="text-right">Jumlah</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
+            <TableHead className="w-[120px]">Tanggal</TableHead>
+            <TableHead>Deskripsi / Akun</TableHead>
+            <TableHead className="text-right">Debit</TableHead>
+            <TableHead className="text-right">Kredit</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions && transactions.length > 0 ? (
             transactions.map((transaction: any) => (
-              <TableRow key={transaction.id}>
-                <TableCell>{transaction.description}</TableCell>
-                <TableCell>
-                  {new Date(transaction.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                  })}
-                </TableCell>
-                <TableCell className="text-right">
-                  Rp {transaction.amount.toLocaleString('id-ID')}
-                </TableCell>
-                <TableCell className="text-right">
-                  <TransactionActions transaction={transaction} />
-                </TableCell>
-              </TableRow>
+              <>
+                <TableRow key={transaction.id} className="bg-muted/50 font-bold hover:bg-muted/50">
+                  <TableCell>
+                    {new Date(transaction.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </TableCell>
+                  <TableCell colSpan={3}>{transaction.description}</TableCell>
+                </TableRow>
+                {transaction.journal_entries.map((entry: any) => (
+                  <TableRow key={entry.id}>
+                    <TableCell></TableCell>
+                    <TableCell className={entry.type === 'credit' ? 'pl-8' : ''}>
+                      {entry.accounts.name}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {entry.type === 'debit' ? `Rp ${Number(entry.amount).toLocaleString('id-ID')}` : ''}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {entry.type === 'credit' ? `Rp ${Number(entry.amount).toLocaleString('id-ID')}` : ''}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             ))
           ) : (
             <TableRow>
