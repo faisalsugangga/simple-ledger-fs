@@ -3,9 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { UserNav } from "@/components/UserNav";
+import { AddTransactionButton } from "@/components/AddTransactionButton";
 
-// Fungsi helper untuk format Rupiah
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "Rp 0";
   return new Intl.NumberFormat("id-ID", {
@@ -23,14 +24,12 @@ export default async function DashboardPage() {
     return redirect("/login");
   }
   
-  // Panggil fungsi RPC yang sudah kita buat
   const { data: summary, error } = await supabase.rpc('get_financial_summary');
   if (error) {
     console.error("Error fetching financial summary:", error);
     return <p>Gagal mengambil data ringkasan.</p>;
   }
 
-  // Olah data ringkasan agar mudah digunakan
   const totals = {
     asset: summary.find(s => s.account_type === 'asset')?.total || 0,
     liability: summary.find(s => s.account_type === 'liability')?.total || 0,
@@ -46,9 +45,14 @@ export default async function DashboardPage() {
     <main className="container mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-        <Button asChild variant="outline">
-          <Link href="/">Lihat Jurnal Transaksi</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button asChild variant="outline"><Link href="/">Jurnal Transaksi</Link></Button>
+            <Button asChild variant="outline"><Link href="/reports">Laporan</Link></Button>
+            <Button asChild variant="outline"><Link href="/logs">Log Aktivitas</Link></Button>
+            <Button asChild variant="outline"><Link href="/accounts">Daftar Akun</Link></Button>
+            <AddTransactionButton />
+            <UserNav email={user.email || ''} />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

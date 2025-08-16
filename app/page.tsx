@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { UserNav } from "@/components/UserNav";
 import { TransactionFilters } from "@/components/TransactionFilters";
 
-// Tambahkan searchParams ke props halaman
 export default async function HomePage({
   searchParams,
 }: {
@@ -31,7 +30,6 @@ export default async function HomePage({
     return redirect("/login");
   }
 
-  // Bangun query secara dinamis
   let query = supabase.from('transactions_with_details').select('*');
 
   if (searchParams?.startDate) {
@@ -41,7 +39,7 @@ export default async function HomePage({
     query = query.lte('date', searchParams.endDate as string);
   }
   if (searchParams?.accountId) {
-    // @ts-ignore - Supabase JS v2 supports array operators on JSON
+    // @ts-ignore 
     query = query.contains('account_ids', [searchParams.accountId]);
   }
 
@@ -57,19 +55,17 @@ export default async function HomePage({
       <NotificationHandler />
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Jurnal Transaksi</h1>
-        <div className="flex items-center gap-4">
-          <Button asChild>
-            <Link href="/dashboard">Lihat Dashboard</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/accounts">Daftar Akun</Link>
-          </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline"><Link href="/dashboard">Dashboard</Link></Button>
+          <Button asChild variant="outline"><Link href="/reports">Laporan</Link></Button>
+          <Button asChild variant="outline"><Link href="/logs">Log Aktivitas</Link></Button>
+          <Button asChild variant="outline"><Link href="/accounts">Daftar Akun</Link></Button>
           <AddTransactionButton />
           <UserNav email={user.email || ''} />
         </div>
       </div>
 
-      <TransactionFilters /> {/* <- Tambahkan komponen filter di sini */}
+      <TransactionFilters />
       
       <Table>
         <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
