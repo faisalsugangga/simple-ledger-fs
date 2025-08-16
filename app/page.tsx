@@ -52,8 +52,10 @@ export default async function HomePage({
     countQuery = countQuery.lte("date", searchParams.endDate as string);
   }
   if (searchParams?.accountId) {
+    // Perubahan: Memisahkan string akun menjadi array ID untuk query `contains`
+    const accountIds = (searchParams.accountId as string).split(',');
     // @ts-ignore
-    countQuery = countQuery.contains("account_ids", [searchParams.accountId]);
+    countQuery = countQuery.contains("account_ids", accountIds);
   }
   const { count } = await countQuery;
   const totalPages = Math.ceil((count || 0) / perPage);
@@ -72,8 +74,10 @@ export default async function HomePage({
     dataQuery = dataQuery.lte("date", searchParams.endDate as string);
   }
   if (searchParams?.accountId) {
+    // Perubahan: Memisahkan string akun menjadi array ID untuk query `contains`
+    const accountIds = (searchParams.accountId as string).split(',');
     // @ts-ignore
-    dataQuery = dataQuery.contains("account_ids", [searchParams.accountId]);
+    dataQuery = dataQuery.contains("account_ids", accountIds);
   }
 
   const { data: transactions, error } = await dataQuery;

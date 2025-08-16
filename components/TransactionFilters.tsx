@@ -2,15 +2,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
 
 type Account = { id: number; name: string };
@@ -18,6 +25,7 @@ type Account = { id: number; name: string };
 export function TransactionFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -27,7 +35,11 @@ export function TransactionFilters() {
   const [endDate, setEndDate] = useState<Date | undefined>(
     searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined
   );
-  const [accountId, setAccountId] = useState(searchParams.get("accountId") || "");
+  
+  // Perubahan: Menggunakan array untuk menampung ID akun yang dipilih
+  const initialAccountIds = searchParams.get("accountId")?.split(',') || [];
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialAccountIds);
+  const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false);
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -37,6 +49,14 @@ export function TransactionFilters() {
     fetchAccounts();
   }, [supabase]);
 
+  const handleAccountToggle = (accountId: string) => {
+    setSelectedAccountIds(prev =>
+      prev.includes(accountId)
+        ? prev.filter(id => id !== accountId)
+        : [...prev, accountId]
+    );
+  };
+
   const handleFilter = () => {
     const params = new URLSearchParams(searchParams);
     if (startDate) params.set("startDate", format(startDate, "yyyy-MM-dd"));
@@ -45,17 +65,16 @@ export function TransactionFilters() {
     if (endDate) params.set("endDate", format(endDate, "yyyy-MM-dd"));
     else params.delete("endDate");
     
-    if (accountId) params.set("accountId", accountId);
+    // Perubahan: Menyimpan array ID akun sebagai string terpisah koma
+    if (selectedAccountIds.length > 0) params.set("accountId", selectedAccountIds.join(','));
     else params.delete("accountId");
 
-    router.push(`/?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const clearFilters = () => {
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setAccountId("");
-    router.push("/");
+    const params = new URLSearchParams();
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
@@ -92,18 +111,44 @@ export function TransactionFilters() {
         </Popover>
       </div>
 
-      <Select value={accountId} onValueChange={setAccountId}>
-        <SelectTrigger className="w-[280px]">
-          <SelectValue placeholder="Filter berdasarkan Akun..." />
-        </SelectTrigger>
-        <SelectContent>
-          {accounts.map((acc) => (
-            <SelectItem key={acc.id} value={String(acc.id)}>
-              {acc.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Perubahan: Menggunakan Popover untuk multi-select akun */}
+      <Popover open={isAccountPopoverOpen} onOpenChange={setIsAccountPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={isAccountPopoverOpen}
+            className="w-[280px] justify-between"
+          >
+            {selectedAccountIds.length > 0
+              ? `${selectedAccountIds.length} akun terpilih`
+              : "Filter berdasarkan Akun..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0">
+          <Command>
+            <CommandInput placeholder="Cari akun..." />
+            <CommandEmpty>Tidak ada akun ditemukan.</CommandEmpty>
+            <CommandGroup>
+              {accounts.map(acc => (
+                <CommandItem
+                  key={acc.id}
+                  onSelect={() => handleAccountToggle(String(acc.id))}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedAccountIds.includes(String(acc.id))}
+                      onCheckedChange={() => handleAccountToggle(String(acc.id))}
+                    />
+                    <span>{acc.name}</span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Popover>
       
       <Button onClick={handleFilter}>Terapkan Filter</Button>
       <Button variant="ghost" onClick={clearFilters}>Bersihkan</Button>
