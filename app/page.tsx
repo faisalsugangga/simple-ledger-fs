@@ -14,7 +14,7 @@ import {
 import { AddTransactionButton } from "@/components/AddTransactionButton";
 import { NotificationHandler } from "@/components/NotificationHandler";
 import { Button } from "@/components/ui/button";
-import { UserNav } from "@/components/UserNav"; // <- 1. Impor UserNav
+import { UserNav } from "@/components/UserNav";
 
 export default async function HomePage() {
   const supabase = createClient();
@@ -24,24 +24,13 @@ export default async function HomePage() {
     return redirect("/login");
   }
 
+  // Mengambil data dari VIEW 'transactions_with_details' yang baru
   const { data: transactions, error } = await supabase
-    .from('transactions')
-    .select(`
-      id,
-      date,
-      description,
-      journal_entries (
-        id,
-        amount,
-        type,
-        accounts (
-          name
-        )
-      )
-    `)
-    .order('date', { ascending: false });
+    .from('transactions_with_details')
+    .select('*');
 
   if (error) {
+    console.error("Error fetching from view:", error);
     return <p>Gagal mengambil data: {error.message}</p>;
   }
 
@@ -52,11 +41,9 @@ export default async function HomePage() {
         <h1 className="text-2xl font-bold">Jurnal Transaksi</h1>
         <div className="flex items-center gap-4">
           <Button asChild variant="outline">
-            {/* 2. Ganti nama link ini menjadi lebih jelas */}
             <Link href="/accounts">Daftar Akun</Link>
           </Button>
           <AddTransactionButton />
-          {/* 3. Ganti email & logout dengan UserNav */}
           <UserNav email={user.email || ''} />
         </div>
       </div>
@@ -67,6 +54,7 @@ export default async function HomePage() {
           <TableRow>
             <TableHead className="w-[120px]">Tanggal</TableHead>
             <TableHead>Deskripsi / Akun</TableHead>
+            <TableHead className="w-[150px]">Dicatat oleh</TableHead>
             <TableHead className="text-right">Debit</TableHead>
             <TableHead className="text-right">Kredit</TableHead>
           </TableRow>
@@ -79,13 +67,17 @@ export default async function HomePage() {
                   <TableCell>
                     {new Date(transaction.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </TableCell>
-                  <TableCell colSpan={3}>{transaction.description}</TableCell>
+                  <TableCell>{transaction.description}</TableCell>
+                  {/* Tampilkan email pengguna yang mencatat transaksi */}
+                  <TableCell className="text-gray-500">{transaction.creator_email}</TableCell>
+                  <TableCell colSpan={2}></TableCell>
                 </TableRow>
-                {transaction.journal_entries.map((entry: any) => (
+                {/* Looping melalui 'entries' yang sudah kita siapkan di dalam view */}
+                {transaction.entries.map((entry: any) => (
                   <TableRow key={entry.id}>
-                    <TableCell></TableCell>
-                    <TableCell className={entry.type === 'credit' ? 'pl-8' : ''}>
-                      {entry.accounts.name}
+                    <TableCell colSpan={2}></TableCell>
+                    <TableCell className={entry.type === 'credit' ? 'pl-8 text-gray-600' : 'text-gray-600'}>
+                      {entry.account_name}
                     </TableCell>
                     <TableCell className="text-right">
                       {entry.type === 'debit' ? `Rp ${Number(entry.amount).toLocaleString('id-ID')}` : ''}
@@ -99,7 +91,7 @@ export default async function HomePage() {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 Belum ada transaksi.
               </TableCell>
             </TableRow>
