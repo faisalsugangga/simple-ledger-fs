@@ -10,10 +10,10 @@ import { AddTransactionButton } from "@/components/AddTransactionButton";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "@/components/PrintButton";
-import { ThemeToggleButton } from "@/components/ThemeToggleButton"; // 1. Impor tombol tema
+import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 
 const formatCurrency = (value: number | null | undefined) => {
-  if (value === null || value === undefined) return "Rp 0";
+  if (value === null || value === undefined) return "Rp 0,00";
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -36,9 +36,10 @@ export default async function DashboardPage({
   const startDate = searchParams?.startDate as string | undefined;
   const endDate = searchParams?.endDate as string | undefined;
 
+  // LAKUKAN PERBAIKAN DI SINI: Tentukan tipe data secara eksplisit saat memanggil RPC
   const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
-    start_date: startDate,
-    end_date: endDate
+    start_date: startDate ? `${startDate}T00:00:00Z` : null,
+    end_date: endDate ? `${endDate}T23:59:59Z` : null,
   });
 
   if (error) {
@@ -47,11 +48,11 @@ export default async function DashboardPage({
   }
 
   const totals = {
-    asset: summary.find(s => s.account_type === 'asset')?.total || 0,
-    liability: summary.find(s => s.account_type === 'liability')?.total || 0,
-    equity: summary.find(s => s.account_type === 'equity')?.total || 0,
-    revenue: summary.find(s => s.account_type === 'revenue')?.total || 0,
-    expense: summary.find(s => s.account_type === 'expense')?.total || 0,
+    asset: summary?.find(s => s.account_type === 'asset')?.total || 0,
+    liability: summary?.find(s => s.account_type === 'liability')?.total || 0,
+    equity: summary?.find(s => s.account_type === 'equity')?.total || 0,
+    revenue: summary?.find(s => s.account_type === 'revenue')?.total || 0,
+    expense: summary?.find(s => s.account_type === 'expense')?.total || 0,
   };
 
   const netIncome = totals.revenue - totals.expense;
@@ -72,7 +73,7 @@ export default async function DashboardPage({
                 <Button asChild variant="outline"><Link href="/accounts">Daftar Akun</Link></Button>
                 <PrintButton />
                 <AddTransactionButton />
-                <ThemeToggleButton /> {/* 2. Tambahkan tombol tema di sini */}
+                <ThemeToggleButton />
                 <UserNav email={user.email || ''} />
             </div>
           </div>

@@ -67,8 +67,8 @@ export default async function AccountsPage() {
           </Table>
         </div>
         <div>
-          {/* Kirim daftar akun ke form sebagai props */}
-          <AddAccountForm accounts={accounts || []} />
+          {/* Hapus properti `accounts` karena tidak lagi dibutuhkan oleh komponen */}
+          <AddAccountForm />
         </div>
       </div>
     </main>

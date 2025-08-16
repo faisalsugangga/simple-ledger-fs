@@ -18,7 +18,11 @@ import { Button } from "@/components/ui/button";
 import { UserNav } from "@/components/UserNav";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
-import { PaginationControls } from "@/components/PaginationControls"; // 1. Impor komponen paginasi
+import { Pagination } from "@/components/Pagination";
+
+// Definisikan opsi jumlah item per halaman
+const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
+const DEFAULT_ITEMS_PER_PAGE = 10;
 
 export default async function HomePage({
   searchParams,
@@ -34,47 +38,50 @@ export default async function HomePage({
     return redirect("/login");
   }
 
-  // 2. Logika Paginasi
-  const page = searchParams?.['page'] ? parseInt(searchParams['page'] as string) : 1;
-  const ITEMS_PER_PAGE = 10;
-  const from = (page - 1) * ITEMS_PER_PAGE;
-  const to = from + ITEMS_PER_PAGE - 1;
+  const currentPage = Number(searchParams?.page) || 1;
+  const perPage = Number(searchParams?.perPage) || DEFAULT_ITEMS_PER_PAGE;
+  const startRange = (currentPage - 1) * perPage;
+  const endRange = startRange + perPage - 1;
 
-  // Buat query dasar yang bisa digunakan kembali
-  let baseQuery = supabase.from("transactions_with_details").select();
-
-  // Terapkan filter yang sama ke query dasar
+  // Query untuk mendapatkan total count, menerapkan filter yang sama
+  let countQuery = supabase.from("transactions_with_details").select("*", { count: "exact", head: true });
   if (searchParams?.startDate) {
-    baseQuery = baseQuery.gte("date", searchParams.startDate as string);
+    countQuery = countQuery.gte("date", searchParams.startDate as string);
   }
   if (searchParams?.endDate) {
-    baseQuery = baseQuery.lte("date", searchParams.endDate as string);
+    countQuery = countQuery.lte("date", searchParams.endDate as string);
   }
   if (searchParams?.accountId) {
     // @ts-ignore
-    baseQuery = baseQuery.contains("account_ids", [searchParams.accountId]);
+    countQuery = countQuery.contains("account_ids", [searchParams.accountId]);
+  }
+  const { count } = await countQuery;
+  const totalPages = Math.ceil((count || 0) / perPage);
+
+  // Query utama untuk mengambil data transaksi untuk halaman saat ini
+  let dataQuery = supabase
+    .from("transactions_with_details")
+    .select("*")
+    .order("date", { ascending: false })
+    .range(startRange, endRange);
+
+  if (searchParams?.startDate) {
+    dataQuery = dataQuery.gte("date", searchParams.startDate as string);
+  }
+  if (searchParams?.endDate) {
+    dataQuery = dataQuery.lte("date", searchParams.endDate as string);
+  }
+  if (searchParams?.accountId) {
+    // @ts-ignore
+    dataQuery = dataQuery.contains("account_ids", [searchParams.accountId]);
   }
 
-  // 3. Ambil total data untuk menghitung jumlah halaman
-  const { count, error: countError } = await baseQuery.select('*', { count: 'exact', head: true });
-  
-  if (countError) {
-    console.error("Error fetching count:", countError);
-    return <p>Gagal mengambil data: {countError.message}</p>;
-  }
-
-  // 4. Ambil data untuk halaman saat ini menggunakan .range()
-  const { data: transactions, error } = await baseQuery
-    .order('date', { ascending: false })
-    .range(from, to);
+  const { data: transactions, error } = await dataQuery;
 
   if (error) {
     console.error("Error fetching from view:", error);
     return <p>Gagal mengambil data: {error.message}</p>;
   }
-  
-  const hasNextPage = (count ?? 0) > to + 1;
-  const hasPrevPage = from > 0;
 
   return (
     <main className="container mx-auto p-8">
@@ -87,6 +94,9 @@ export default async function HomePage({
           </Button>
           <Button asChild variant="outline">
             <Link href="/accounts">Daftar Akun</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/import">Import / Export</Link>
           </Button>
           <AddTransactionButton />
           <ThemeToggleButton />
@@ -121,7 +131,14 @@ export default async function HomePage({
                   <TableCell colSpan={3}>{transaction.description}</TableCell>
                 </TableRow>
                 {transaction.entries.map((entry: any, index: number) => (
-                  <TableRow key={entry.id} className={index === transaction.entries.length - 1 ? 'border-b-2 border-gray-200 dark:border-gray-800' : 'border-b-0'}>
+                  <TableRow
+                    key={entry.id}
+                    className={
+                      index === transaction.entries.length - 1
+                        ? "border-b-2 border-gray-200 dark:border-gray-800"
+                        : "border-b-0"
+                    }
+                  >
                     <TableCell></TableCell>
                     <TableCell
                       className={
@@ -156,12 +173,11 @@ export default async function HomePage({
         </TableBody>
       </Table>
       
-      {/* 5. Tampilkan komponen paginasi di bawah tabel */}
-      <PaginationControls
-        hasNextPage={hasNextPage}
-        hasPrevPage={hasPrevPage}
-        totalCount={count ?? 0}
-        itemsPerPage={ITEMS_PER_PAGE}
+      <Pagination 
+        totalPages={totalPages} 
+        currentPage={currentPage} 
+        perPage={perPage} 
+        perPageOptions={ITEMS_PER_PAGE_OPTIONS}
       />
     </main>
   );

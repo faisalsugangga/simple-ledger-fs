@@ -13,20 +13,19 @@ import { Button } from "./ui/button";
 import { CircleUser } from "lucide-react";
 import { logout } from "@/app/actions";
 import Link from "next/link";
-import { useTheme } from "next-themes"; // 1. Impor hook 'useTheme'
+import { useTheme } from "next-themes";
 
 interface UserNavProps {
   email: string;
 }
 
 export function UserNav({ email }: UserNavProps) {
-  const { setTheme } = useTheme(); // 2. Dapatkan fungsi setTheme
+  const { setTheme } = useTheme();
 
-  // 3. Buat fungsi untuk menangani logout
+  // Fungsi untuk menangani logout tanpa mereset tema
   const handleLogout = async () => {
-    // Atur tema ke 'light' di browser terlebih dahulu
-    setTheme("light");
-    // Kemudian panggil server action untuk logout
+    // Baris setTheme("light"); telah dihapus.
+    // Sekarang hanya memanggil server action untuk logout.
     await logout();
   };
 
@@ -62,7 +61,7 @@ export function UserNav({ email }: UserNavProps) {
           <Link href="/help">Bantuan</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {/* 4. Ganti <form> dengan onClick yang memanggil handleLogout */}
+        {/* Mengganti <form> dengan onClick yang memanggil handleLogout */}
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           Logout
         </DropdownMenuItem>
