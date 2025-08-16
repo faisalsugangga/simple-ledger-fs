@@ -12,16 +12,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getActiveWorkspaceId } from "@/app/actions"; // Mengimpor fungsi untuk mendapatkan workspace ID
 
 export default async function LogsPage() {
   const supabase = createClient();
+  const activeWorkspaceId = await getActiveWorkspaceId();
+
+  if (!activeWorkspaceId) {
+    // Jika tidak ada workspace yang aktif, arahkan pengguna
+    return redirect("/select-workspace");
+  }
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return redirect("/login");
   }
 
-  const { data: logs, error } = await supabase.from("logs").select('*').order('created_at', { ascending: false });
+  const { data: logs, error } = await supabase
+    .from("logs")
+    .select('*')
+    .eq('workspace_id', activeWorkspaceId) // Tambahkan filter berdasarkan workspace_id
+    .order('created_at', { ascending: false });
+
   if (error) {
     return <p>Gagal mengambil data log: {error.message}</p>;
   }

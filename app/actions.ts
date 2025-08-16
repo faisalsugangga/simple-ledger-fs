@@ -54,7 +54,7 @@ export async function logout() {
  * Server Action untuk menyimpan ID workspace yang dipilih ke cookie dan melakukan redirect.
  * @param {FormData} formData FormData dari form yang berisi ID workspace.
  */
-export async function selectWorkspace(formData: FormData) {
+export async function function_selectWorkspace(formData: FormData) {
   const workspaceId = formData.get('workspaceId') as string;
   const cookieStore = cookies();
   const supabase = createClient();
@@ -124,11 +124,17 @@ export async function addJournalTransaction(
     return { success: false, message: "Tidak ada workspace yang dipilih." };
   }
   
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, message: "Sesi pengguna tidak valid." };
+  }
+
   const { data, error } = await supabase.rpc('create_transaction_with_entries', {
     p_description: description,
     p_date: date,
     p_entries: formattedEntries,
-    p_workspace_id: workspaceId
+    p_workspace_id: workspaceId,
+    p_user_id: user.id,
   });
 
   if (error) {
@@ -138,6 +144,61 @@ export async function addJournalTransaction(
 
   revalidatePath('/');
   return { success: true, message: "Transaksi berhasil disimpan!" };
+}
+
+// Server Action untuk mengubah transaksi
+export async function updateJournalTransaction(
+  id: number,
+  description: string,
+  date: string,
+  entries: Omit<JournalEntry, 'debit' | 'credit'>[]
+): Promise<{ success: boolean; message: string }> {
+  if (!id || !description || !date || entries.length < 2) {
+    return { success: false, message: "ID, Deskripsi, tanggal, dan minimal 2 entri jurnal wajib diisi." };
+  }
+
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  const formattedEntries = entries.map(e => {
+    const amount = parseFloat(e.amount);
+    if (isNaN(amount) || amount <= 0) {
+      throw new Error("Jumlah harus angka positif.");
+    }
+    if (e.type === 'debit') totalDebit += amount;
+    if (e.type === 'credit') totalCredit += amount;
+    return {
+      account_id: parseInt(e.accountId),
+      amount: amount,
+      type: e.type,
+    };
+  });
+
+  if (totalDebit !== totalCredit) {
+    return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
+  }
+
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, message: "Sesi pengguna tidak valid." };
+  }
+
+  const { error } = await supabase.rpc('update_journal_transaction', {
+    p_transaction_id: id,
+    p_description: description,
+    p_date: date,
+    p_entries: formattedEntries,
+    p_user_id: user.id,
+  });
+
+  if (error) {
+    console.error("RPC Error:", error);
+    return { success: false, message: `Gagal mengubah transaksi: ${error.message}` };
+  }
+
+  revalidatePath('/');
+  return { success: true, message: "Transaksi berhasil diubah!" };
 }
 
 /**

@@ -12,7 +12,7 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"], // Perbaikan: Menghapus subset 'vietnamese'
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {

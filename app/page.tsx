@@ -1,3 +1,4 @@
+// app/page.tsx
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -21,6 +22,7 @@ import { Pagination } from "@/components/Pagination";
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { getActiveWorkspaceId } from "@/app/actions";
+import { TransactionActions } from "@/components/TransactionActions"; // Impor komponen ini
 
 // Definisikan opsi jumlah item per halaman
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
@@ -40,11 +42,8 @@ export default async function HomePage({
     return redirect("/login");
   }
 
-  // LOGIKA PENTING: Periksa ID workspace yang aktif dari cookie.
   const activeWorkspaceId = await getActiveWorkspaceId();
   if (!activeWorkspaceId) {
-    // Jika tidak ada activeWorkspaceId di cookie, arahkan ke halaman pemilihan.
-    // Halaman ini tidak akan mencoba menebak workspace yang benar.
     return redirect("/select-workspace");
   }
   
@@ -167,6 +166,8 @@ export default async function HomePage({
             <TableHead className="text-right w-[170px]">
               Kredit
             </TableHead>
+            {/* Tambah kolom kosong untuk aksi */}
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -182,6 +183,10 @@ export default async function HomePage({
                     })}
                   </TableCell>
                   <TableCell colSpan={3}>{transaction.description}</TableCell>
+                  {/* Panggil komponen TransactionActions di sini */}
+                  <TableCell>
+                    <TransactionActions transaction={transaction} />
+                  </TableCell>
                 </TableRow>
                 {transaction.entries.map((entry: any, index: number) => (
                   <TableRow
@@ -212,13 +217,14 @@ export default async function HomePage({
                         ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
                         : ""}
                     </TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 ))}
               </React.Fragment>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 Tidak ada transaksi yang cocok dengan filter.
               </TableCell>
             </TableRow>
