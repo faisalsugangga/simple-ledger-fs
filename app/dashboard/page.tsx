@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { UserNav } from "@/components/UserNav";
 import { AddTransactionButton } from "@/components/AddTransactionButton";
-import { TransactionFilters } from "@/components/TransactionFilters";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "@/components/PrintButton";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
+import { TransactionFilter_DateOnly } from "@/components/TransactionFilter_DateOnly"; // Pastikan import ini sudah benar
 
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "Rp 0,00";
@@ -77,8 +77,8 @@ export default async function DashboardPage({
                 <UserNav email={user.email || ''} />
             </div>
           </div>
-
-          <TransactionFilters />
+          
+          <TransactionFilter_DateOnly />
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 my-6">
             <Card>
@@ -179,7 +179,7 @@ export default async function DashboardPage({
                 </tbody>
               </table>
                <div className="text-center pt-6 font-bold text-lg">
-                  <span className={totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'text-green-700' : 'text-red-700'}>
+                  <span className={totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'text-green-600' : 'text-red-600'}>
                     {totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
                   </span>
                 </div>

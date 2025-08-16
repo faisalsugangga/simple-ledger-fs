@@ -36,10 +36,16 @@ export function TransactionFilters() {
     searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined
   );
   
-  // Perubahan: Menggunakan array untuk menampung ID akun yang dipilih
-  const initialAccountIds = searchParams.get("accountId")?.split(',') || [];
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialAccountIds);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
+    searchParams.get("accountId")?.split(',') || []
+  );
   const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false);
+
+  // Perbaikan: Tambahkan useEffect untuk menyinkronkan state dengan URL
+  useEffect(() => {
+    const accountIdsFromUrl = searchParams.get("accountId")?.split(',') || [];
+    setSelectedAccountIds(accountIdsFromUrl);
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchAccounts = async () => {
