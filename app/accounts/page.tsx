@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AddAccountForm } from "@/components/AddAccountForm";
+import { AddAccountForm } from "@/components/AddAccountForm"; // <-- Pastikan ini AddAccountForm
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -59,7 +59,7 @@ export default async function AccountsPage() {
           </Table>
         </div>
         <div>
-          <AddAccountForm />
+          <AddAccountForm /> {/* <-- Pastikan ini AddAccountForm */}
         </div>
       </div>
     </main>

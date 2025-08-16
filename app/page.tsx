@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import React from "react";
 import {
   Table,
   TableBody,
@@ -15,8 +16,14 @@ import { AddTransactionButton } from "@/components/AddTransactionButton";
 import { NotificationHandler } from "@/components/NotificationHandler";
 import { Button } from "@/components/ui/button";
 import { UserNav } from "@/components/UserNav";
+import { TransactionFilters } from "@/components/TransactionFilters";
 
-export default async function HomePage() {
+// Tambahkan searchParams ke props halaman
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,9 +31,21 @@ export default async function HomePage() {
     return redirect("/login");
   }
 
-  const { data: transactions, error } = await supabase
-    .from('transactions_with_details')
-    .select('*');
+  // Bangun query secara dinamis
+  let query = supabase.from('transactions_with_details').select('*');
+
+  if (searchParams?.startDate) {
+    query = query.gte('date', searchParams.startDate as string);
+  }
+  if (searchParams?.endDate) {
+    query = query.lte('date', searchParams.endDate as string);
+  }
+  if (searchParams?.accountId) {
+    // @ts-ignore - Supabase JS v2 supports array operators on JSON
+    query = query.contains('account_ids', [searchParams.accountId]);
+  }
+
+  const { data: transactions, error } = await query;
 
   if (error) {
     console.error("Error fetching from view:", error);
@@ -49,6 +68,8 @@ export default async function HomePage() {
           <UserNav email={user.email || ''} />
         </div>
       </div>
+
+      <TransactionFilters /> {/* <- Tambahkan komponen filter di sini */}
       
       <Table>
         <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
@@ -64,8 +85,8 @@ export default async function HomePage() {
         <TableBody>
           {transactions && transactions.length > 0 ? (
             transactions.map((transaction: any) => (
-              <>
-                <TableRow key={transaction.id} className="bg-muted/50 font-bold hover:bg-muted/50">
+              <React.Fragment key={transaction.id}>
+                <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
                   <TableCell>
                     {new Date(transaction.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </TableCell>
@@ -87,12 +108,12 @@ export default async function HomePage() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </>
+              </React.Fragment>
             ))
           ) : (
             <TableRow>
               <TableCell colSpan={5} className="h-24 text-center">
-                Belum ada transaksi.
+                Tidak ada transaksi yang cocok dengan filter.
               </TableCell>
             </TableRow>
           )}

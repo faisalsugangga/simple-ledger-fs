@@ -1,175 +1,166 @@
+// components/TransactionForm.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// Tambahkan DialogFooter di sini
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { addJournalTransaction } from "@/app/actions";
+import { PlusCircle, Trash2 } from "lucide-react";
 
-type Category = { id: number; name: string };
-type Transaction = { id: number; description: string; amount: number; category_id: number; created_at: string };
+type Account = { id: number; name: string };
+type JournalEntry = { accountId: string; debit: string; credit: string; };
 
 interface TransactionFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  transactionToEdit?: Transaction | null;
 }
 
-// Fungsi helper untuk format Rupiah
-const formatRupiah = (value: string) => {
-  if (!value) return "";
-  const numberValue = parseInt(value.replace(/[^0-9]/g, ""), 10);
-  if (isNaN(numberValue)) return "";
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(numberValue);
-};
-
-export function TransactionForm({ isOpen, setIsOpen, transactionToEdit }: TransactionFormProps) {
+export function TransactionForm({ isOpen, setIsOpen }: TransactionFormProps) {
   const supabase = createClient();
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [description, setDescription] = useState("");
-  // State 'amount' sekarang menyimpan nilai angka mentah sebagai string
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [entries, setEntries] = useState<JournalEntry[]>([
+    { accountId: "", debit: "", credit: "" },
+    { accountId: "", debit: "", credit: "" },
+  ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase.from("categories").select("id, name");
-      if (data) setCategories(data);
+    const fetchAccounts = async () => {
+      const { data } = await supabase.from("accounts").select("id, name").order('name');
+      if (data) setAccounts(data);
     };
-    fetchCategories();
-  }, [supabase]);
-
-  useEffect(() => {
-    if (transactionToEdit && isOpen) {
-      setDescription(transactionToEdit.description);
-      setAmount(String(transactionToEdit.amount));
-      setSelectedCategory(String(transactionToEdit.category_id));
-      if (transactionToEdit.created_at) {
-        setDate(new Date(transactionToEdit.created_at).toISOString().split('T')[0]);
-      }
-    } else {
-      setDescription("");
-      setAmount("");
-      setSelectedCategory("");
-      setDate("");
+    if (isOpen) {
+      fetchAccounts();
     }
-  }, [transactionToEdit, isOpen]);
+  }, [isOpen, supabase]);
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Ambil nilai input dan hapus semua karakter non-numerik
-    const numericValue = e.target.value.replace(/[^0-9]/g, "");
-    setAmount(numericValue);
+  const handleEntryChange = (index: number, field: keyof JournalEntry, value: string) => {
+    const newEntries = [...entries];
+    const entry = newEntries[index];
+    entry[field] = value;
+    
+    if (field === 'debit' && value !== '') entry.credit = '';
+    if (field === 'credit' && value !== '') entry.debit = '';
+
+    setEntries(newEntries);
   };
 
+  const addEntry = () => {
+    setEntries([...entries, { accountId: "", debit: "", credit: "" }]);
+  };
+
+  const removeEntry = (index: number) => {
+    const newEntries = entries.filter((_, i) => i !== index);
+    setEntries(newEntries);
+  };
+
+  const calculateTotals = () => {
+    let totalDebit = 0;
+    let totalCredit = 0;
+    entries.forEach(entry => {
+      totalDebit += parseFloat(entry.debit) || 0;
+      totalCredit += parseFloat(entry.credit) || 0;
+    });
+    return { totalDebit, totalCredit };
+  };
+
+  const { totalDebit, totalCredit } = calculateTotals();
+  const isBalanced = totalDebit === totalCredit && totalDebit > 0;
+
   const handleSubmit = async () => {
-    if (!description || !amount || !selectedCategory || !date) {
-      toast.error("Semua field wajib diisi, termasuk tanggal.");
+    if (!isBalanced) {
+      toast.error("Total Debit dan Kredit harus seimbang dan tidak boleh nol.");
       return;
     }
 
-    const transactionData = {
-      description: description,
-      amount: parseInt(amount), // Pastikan amount adalah angka saat submit
-      category_id: parseInt(selectedCategory),
-      created_at: date,
-    };
+    setIsSubmitting(true);
+    
+    const formattedEntries = entries
+      .filter(e => e.accountId && (e.debit || e.credit))
+      .map(e => ({
+        accountId: e.accountId,
+        amount: e.debit || e.credit,
+        type: e.debit ? 'debit' : 'credit' as 'debit' | 'credit'
+      }));
 
-    // ... (logika submit tetap sama)
-    if (transactionToEdit) {
-      const { error } = await supabase
-        .from("transactions")
-        .update(transactionData)
-        .eq("id", transactionToEdit.id);
-
-      if (error) {
-        toast.error("Gagal memperbarui data: " + error.message);
-      } else {
-        toast.success("Data berhasil diperbarui!");
-        setIsOpen(false);
-        window.location.reload();
-      }
+    const result = await addJournalTransaction(description, date, formattedEntries);
+    
+    if (result.success) {
+      toast.success(result.message);
+      setIsOpen(false);
+      window.location.reload();
     } else {
-      const { error } = await supabase.from("transactions").insert([transactionData]);
-
-      if (error) {
-        toast.error("Gagal menyimpan data: " + error.message);
-      } else {
-        toast.success("Data berhasil disimpan!");
-        setIsOpen(false);
-        window.location.reload();
-      }
+      toast.error(result.message);
     }
+    setIsSubmitting(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{transactionToEdit ? "Edit Transaksi" : "Tambah Transaksi Baru"}</DialogTitle>
-          <DialogDescription>
-            {transactionToEdit ? "Ubah detail transaksi di bawah ini." : "Isi detail transaksi di sini."}
-          </DialogDescription>
+          <DialogTitle>Tambah Jurnal Transaksi Baru</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">Deskripsi</Label>
-            <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amount" className="text-right">Jumlah</Label>
-            {/* Input diubah menjadi 'text' dan menggunakan handler & value baru */}
-            <Input
-              id="amount"
-              type="text"
-              value={formatRupiah(amount)}
-              onChange={handleAmountChange}
-              className="col-span-3"
-              placeholder="Rp 0"
-            />
-          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="date" className="text-right">Tanggal</Label>
             <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="category" className="text-right">Kategori</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Pilih kategori..." />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="description" className="text-right">Deskripsi</Label>
+            <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" placeholder="Contoh: Pembelian ATK" />
+          </div>
+
+          <div className="mt-4 border-t pt-4">
+            <div className="grid grid-cols-12 gap-2 mb-2 font-medium text-sm text-muted-foreground">
+                <div className="col-span-5">Akun</div>
+                <div className="col-span-3 text-right">Debit</div>
+                <div className="col-span-3 text-right">Kredit</div>
+            </div>
+            {entries.map((entry, index) => (
+              <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
+                <div className="col-span-5">
+                  <Select value={entry.accountId} onValueChange={(value) => handleEntryChange(index, 'accountId', value)}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Akun..." /></SelectTrigger>
+                    <SelectContent>{accounts.map(acc => <SelectItem key={acc.id} value={String(acc.id)}>{acc.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-3">
+                  <Input type="number" placeholder="0" value={entry.debit} onChange={(e) => handleEntryChange(index, 'debit', e.target.value)} className="text-right" />
+                </div>
+                <div className="col-span-3">
+                  <Input type="number" placeholder="0" value={entry.credit} onChange={(e) => handleEntryChange(index, 'credit', e.target.value)} className="text-right" />
+                </div>
+                <div className="col-span-1">
+                  {entries.length > 2 && <Button variant="ghost" size="icon" onClick={() => removeEntry(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button>}
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={addEntry} className="mt-2"><PlusCircle className="h-4 w-4 mr-2" /> Tambah Baris</Button>
+          </div>
+          
+          <div className="mt-4 border-t pt-4 flex justify-between font-mono text-sm">
+            <div>
+              <div>Total Debit: Rp {totalDebit.toLocaleString('id-ID')}</div>
+              <div>Total Kredit: Rp {totalCredit.toLocaleString('id-ID')}</div>
+            </div>
+            <div className={`font-bold p-2 rounded-md ${isBalanced ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}`}>
+              {isBalanced ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit" onClick={handleSubmit}>Simpan Perubahan</Button>
+          <Button type="submit" onClick={handleSubmit} disabled={!isBalanced || isSubmitting}>
+            {isSubmitting ? "Menyimpan..." : "Simpan Transaksi"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
