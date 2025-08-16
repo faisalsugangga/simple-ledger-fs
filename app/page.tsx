@@ -21,6 +21,7 @@ import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { Pagination } from "@/components/Pagination";
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { getActiveWorkspaceId } from "@/app/actions";
 
 // Definisikan opsi jumlah item per halaman
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
@@ -39,6 +40,12 @@ export default async function HomePage({
   if (!user) {
     return redirect("/login");
   }
+
+  // <--- TAMBAHAN: Periksa ID workspace yang aktif
+  const activeWorkspaceId = await getActiveWorkspaceId();
+  if (!activeWorkspaceId) {
+    return redirect("/select-workspace");
+  }
   
   const sortBy = (searchParams?.sortBy as string) || "date";
   const sortOrder = (searchParams?.sortOrder as string) || "desc";
@@ -48,13 +55,13 @@ export default async function HomePage({
   const startRange = (currentPage - 1) * perPage;
   const endRange = startRange + perPage - 1;
 
-  // Perbaikan: Menentukan kolom sortir yang benar
   const sortableColumn = sortBy === 'amount' ? 'entries->0->>amount' : sortBy;
 
-  // Query untuk mendapatkan total count, menerapkan filter dan sortir yang sama
   let countQuery = supabase
     .from("transactions_with_details")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .eq('workspace_id', activeWorkspaceId); // <--- TAMBAHAN
+
   if (searchParams?.startDate) {
     countQuery = countQuery.gte("date", searchParams.startDate as string);
   }
@@ -71,10 +78,10 @@ export default async function HomePage({
   const { count } = await countQuery;
   const totalPages = Math.ceil((count || 0) / perPage);
 
-  // Query utama untuk mengambil data transaksi untuk halaman saat ini
   let dataQuery = supabase
     .from("transactions_with_details")
     .select("*")
+    .eq('workspace_id', activeWorkspaceId) // <--- TAMBAHAN
     .order(sortableColumn, { ascending: sortOrder === "asc" })
     .range(startRange, endRange);
 

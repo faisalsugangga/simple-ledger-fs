@@ -1,3 +1,4 @@
+// app/login/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -33,7 +34,7 @@ export default function LoginPage() {
     if (result.success) {
       toast.success(result.message);
       setTimeout(() => {
-        router.push("/");
+        router.push("/select-workspace");
       }, 1000);
     } else {
       setErrorMessage(result.message);
@@ -42,9 +43,7 @@ export default function LoginPage() {
   };
 
   return (
-    // PERBAIKAN: Menggunakan warna tematik seperti bg-background
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      {/* PERBAIKAN: Menggunakan warna tematik seperti bg-card */}
       <div className="w-full max-w-md rounded-lg bg-card p-8 shadow-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <Image
@@ -55,7 +54,6 @@ export default function LoginPage() {
             className="mb-4"
             priority
           />
-          {/* PERBAIKAN: Menggunakan warna tematik untuk teks */}
           <h1 className="text-xl font-bold text-card-foreground">
             Sistem Manajemen Keuangan Terpusat
           </h1>

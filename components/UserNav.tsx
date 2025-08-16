@@ -51,10 +51,6 @@ export function UserNav({ email }: UserNavProps) {
           <Link href="/profile">Profil</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/import">Import / Export</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled>Pengaturan</DropdownMenuItem>
-        <DropdownMenuItem asChild>
           <Link href="/logs">Log Aktivitas</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
