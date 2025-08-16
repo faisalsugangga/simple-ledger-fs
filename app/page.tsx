@@ -24,7 +24,6 @@ export default async function HomePage() {
     return redirect("/login");
   }
 
-  // Mengambil data dari VIEW 'transactions_with_details' yang baru
   const { data: transactions, error } = await supabase
     .from('transactions_with_details')
     .select('*');
@@ -40,6 +39,9 @@ export default async function HomePage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Jurnal Transaksi</h1>
         <div className="flex items-center gap-4">
+          <Button asChild>
+            <Link href="/dashboard">Lihat Dashboard</Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href="/accounts">Daftar Akun</Link>
           </Button>
@@ -68,11 +70,9 @@ export default async function HomePage() {
                     {new Date(transaction.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </TableCell>
                   <TableCell>{transaction.description}</TableCell>
-                  {/* Tampilkan email pengguna yang mencatat transaksi */}
                   <TableCell className="text-gray-500">{transaction.creator_email}</TableCell>
                   <TableCell colSpan={2}></TableCell>
                 </TableRow>
-                {/* Looping melalui 'entries' yang sudah kita siapkan di dalam view */}
                 {transaction.entries.map((entry: any) => (
                   <TableRow key={entry.id}>
                     <TableCell colSpan={2}></TableCell>

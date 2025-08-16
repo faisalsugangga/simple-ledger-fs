@@ -12,6 +12,7 @@ import {
 import { Button } from "./ui/button";
 import { CircleUser } from "lucide-react";
 import { logout } from "@/app/actions";
+import Link from "next/link"; // <- 1. Impor Link
 
 interface UserNavProps {
   email: string;
@@ -36,11 +37,13 @@ export function UserNav({ email }: UserNavProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Profil</DropdownMenuItem>
-        <DropdownMenuItem>Pengaturan</DropdownMenuItem>
+        {/* 2. Ubah "Profil" menjadi Link */}
+        <DropdownMenuItem asChild>
+          <Link href="/profile">Profil</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled>Pengaturan</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
-          {/* Form untuk memanggil server action logout */}
           <form action={logout} className="w-full">
             <button type="submit" className="w-full text-left">
               Logout
