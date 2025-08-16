@@ -13,12 +13,23 @@ import { Button } from "./ui/button";
 import { CircleUser } from "lucide-react";
 import { logout } from "@/app/actions";
 import Link from "next/link";
+import { useTheme } from "next-themes"; // 1. Impor hook 'useTheme'
 
 interface UserNavProps {
   email: string;
 }
 
 export function UserNav({ email }: UserNavProps) {
+  const { setTheme } = useTheme(); // 2. Dapatkan fungsi setTheme
+
+  // 3. Buat fungsi untuk menangani logout
+  const handleLogout = async () => {
+    // Atur tema ke 'light' di browser terlebih dahulu
+    setTheme("light");
+    // Kemudian panggil server action untuk logout
+    await logout();
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -40,8 +51,10 @@ export function UserNav({ email }: UserNavProps) {
         <DropdownMenuItem asChild>
           <Link href="/profile">Profil</Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/import">Import / Export</Link>
+        </DropdownMenuItem>
         <DropdownMenuItem disabled>Pengaturan</DropdownMenuItem>
-        {/* PENAMBAHAN: Menu Log Aktivitas */}
         <DropdownMenuItem asChild>
           <Link href="/logs">Log Aktivitas</Link>
         </DropdownMenuItem>
@@ -49,12 +62,9 @@ export function UserNav({ email }: UserNavProps) {
           <Link href="/help">Bantuan</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <form action={logout} className="w-full">
-            <button type="submit" className="w-full text-left">
-              Logout
-            </button>
-          </form>
+        {/* 4. Ganti <form> dengan onClick yang memanggil handleLogout */}
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+          Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
