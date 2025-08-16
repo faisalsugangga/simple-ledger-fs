@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { UserNav } from "@/components/UserNav";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
+import { PaginationControls } from "@/components/PaginationControls"; // 1. Impor komponen paginasi
 
 export default async function HomePage({
   searchParams,
@@ -33,25 +34,47 @@ export default async function HomePage({
     return redirect("/login");
   }
 
-  let query = supabase.from("transactions_with_details").select("*").order('date', { ascending: false });
+  // 2. Logika Paginasi
+  const page = searchParams?.['page'] ? parseInt(searchParams['page'] as string) : 1;
+  const ITEMS_PER_PAGE = 10;
+  const from = (page - 1) * ITEMS_PER_PAGE;
+  const to = from + ITEMS_PER_PAGE - 1;
 
+  // Buat query dasar yang bisa digunakan kembali
+  let baseQuery = supabase.from("transactions_with_details").select();
+
+  // Terapkan filter yang sama ke query dasar
   if (searchParams?.startDate) {
-    query = query.gte("date", searchParams.startDate as string);
+    baseQuery = baseQuery.gte("date", searchParams.startDate as string);
   }
   if (searchParams?.endDate) {
-    query = query.lte("date", searchParams.endDate as string);
+    baseQuery = baseQuery.lte("date", searchParams.endDate as string);
   }
   if (searchParams?.accountId) {
     // @ts-ignore
-    query = query.contains("account_ids", [searchParams.accountId]);
+    baseQuery = baseQuery.contains("account_ids", [searchParams.accountId]);
   }
 
-  const { data: transactions, error } = await query;
+  // 3. Ambil total data untuk menghitung jumlah halaman
+  const { count, error: countError } = await baseQuery.select('*', { count: 'exact', head: true });
+  
+  if (countError) {
+    console.error("Error fetching count:", countError);
+    return <p>Gagal mengambil data: {countError.message}</p>;
+  }
+
+  // 4. Ambil data untuk halaman saat ini menggunakan .range()
+  const { data: transactions, error } = await baseQuery
+    .order('date', { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error("Error fetching from view:", error);
     return <p>Gagal mengambil data: {error.message}</p>;
   }
+  
+  const hasNextPage = (count ?? 0) > to + 1;
+  const hasPrevPage = from > 0;
 
   return (
     <main className="container mx-auto p-8">
@@ -64,9 +87,6 @@ export default async function HomePage({
           </Button>
           <Button asChild variant="outline">
             <Link href="/accounts">Daftar Akun</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/import">Import / Export</Link>
           </Button>
           <AddTransactionButton />
           <ThemeToggleButton />
@@ -103,7 +123,6 @@ export default async function HomePage({
                 {transaction.entries.map((entry: any, index: number) => (
                   <TableRow key={entry.id} className={index === transaction.entries.length - 1 ? 'border-b-2 border-gray-200 dark:border-gray-800' : 'border-b-0'}>
                     <TableCell></TableCell>
-                    {/* PERBAIKAN: Menambahkan warna teks untuk dark mode */}
                     <TableCell
                       className={
                         entry.type === "credit"
@@ -136,6 +155,14 @@ export default async function HomePage({
           )}
         </TableBody>
       </Table>
+      
+      {/* 5. Tampilkan komponen paginasi di bawah tabel */}
+      <PaginationControls
+        hasNextPage={hasNextPage}
+        hasPrevPage={hasPrevPage}
+        totalCount={count ?? 0}
+        itemsPerPage={ITEMS_PER_PAGE}
+      />
     </main>
   );
 }

@@ -15,11 +15,9 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
-  // Gunakan hook useSearchParams() untuk membaca searchParams
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Akses properti message dari objek yang dikembalikan oleh useSearchParams()
     const message = searchParams.get("message");
     if (message) {
       setErrorMessage(message);
@@ -44,8 +42,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
+    // PERBAIKAN: Menggunakan warna tematik seperti bg-background
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+      {/* PERBAIKAN: Menggunakan warna tematik seperti bg-card */}
+      <div className="w-full max-w-md rounded-lg bg-card p-8 shadow-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <Image
             src="/logo/stie-indonesia-malang.png"
@@ -55,10 +55,11 @@ export default function LoginPage() {
             className="mb-4"
             priority
           />
-          <h1 className="text-xl font-bold text-gray-800">
+          {/* PERBAIKAN: Menggunakan warna tematik untuk teks */}
+          <h1 className="text-xl font-bold text-card-foreground">
             Sistem Manajemen Keuangan Terpusat
           </h1>
-          <p className="text-md mt-1 text-gray-500">STIE Indonesia Malang</p>
+          <p className="text-md mt-1 text-muted-foreground">STIE Indonesia Malang</p>
         </div>
 
         <form action={handleSubmit}>
