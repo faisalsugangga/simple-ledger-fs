@@ -2,7 +2,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner"; // <- Perbaikan ada di baris ini
+import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/ThemeProvider"; // 1. Impor ThemeProvider
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,13 +25,45 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const printStyles = `
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .printable {
+        display: block !important;
+      }
+    }
+    @media screen {
+      .printable {
+        display: none !important;
+      }
+    }
+  `;
+
   return (
-    <html lang="en">
+    // 2. Tambahkan suppressHydrationWarning untuk next-themes
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <style>{printStyles}</style>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <Toaster />
+        {/* 3. Bungkus semua konten dengan ThemeProvider */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

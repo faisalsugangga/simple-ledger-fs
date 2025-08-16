@@ -27,6 +27,7 @@ export function AddAccountForm() {
       return;
     }
     
+    // Logika insert sudah disederhanakan, tidak lagi menyertakan parent_id
     const { error } = await supabase.from("accounts").insert([{
       name,
       type,
@@ -40,7 +41,7 @@ export function AddAccountForm() {
       setName("");
       setType("");
       setBalanceType("");
-      window.location.reload();
+      window.location.reload(); // Muat ulang halaman untuk menampilkan data baru
     }
   };
 

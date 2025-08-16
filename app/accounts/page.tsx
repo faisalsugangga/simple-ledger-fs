@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AddAccountForm } from "@/components/AddAccountForm"; // <-- Pastikan ini AddAccountForm
+import { AddAccountForm } from "@/components/AddAccountForm";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -22,8 +22,10 @@ export default async function AccountsPage() {
     return redirect("/login");
   }
 
-  const { data: accounts, error } = await supabase.from("accounts").select('*').order('name');
+  // Panggil fungsi RPC untuk mendapatkan data hirarki
+  const { data: accounts, error } = await supabase.rpc('get_accounts_hierarchy');
   if (error) {
+    console.error("Error fetching accounts hierarchy:", error);
     return <p>Gagal mengambil data akun: {error.message}</p>;
   }
 
@@ -50,7 +52,13 @@ export default async function AccountsPage() {
             <TableBody>
               {accounts?.map((account) => (
                 <TableRow key={account.id}>
-                  <TableCell className="font-medium">{account.name}</TableCell>
+                  {/* Tambahkan padding kiri berdasarkan level hirarki */}
+                  <TableCell 
+                    className="font-medium"
+                    style={{ paddingLeft: `${account.level * 1.5 + 0.5}rem` }}
+                  >
+                    {account.name}
+                  </TableCell>
                   <TableCell className="capitalize">{account.type}</TableCell>
                   <TableCell className="capitalize">{account.balance_type}</TableCell>
                 </TableRow>
@@ -59,7 +67,8 @@ export default async function AccountsPage() {
           </Table>
         </div>
         <div>
-          <AddAccountForm /> {/* <-- Pastikan ini AddAccountForm */}
+          {/* Kirim daftar akun ke form sebagai props */}
+          <AddAccountForm accounts={accounts || []} />
         </div>
       </div>
     </main>
