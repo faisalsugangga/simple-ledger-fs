@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { ThemeProvider } from "@/components/ThemeProvider"; // 1. Impor ThemeProvider
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,7 +12,7 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin"], // Perbaikan: Menghapus subset 'vietnamese'
 });
 
 export const metadata: Metadata = {
@@ -30,12 +30,30 @@ export default function RootLayout({
       body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        color: black !important;
+        background-color: white !important;
       }
       .no-print {
         display: none !important;
       }
       .printable {
         display: block !important;
+      }
+      /* Perbaikan untuk memastikan elemen dark mode terlihat baik saat dicetak */
+      .dark .text-muted-foreground {
+        color: #4b5563 !important;
+      }
+      .dark .bg-muted\\/50 {
+        background-color: #f3f4f6 !important;
+      }
+      .dark .border, .dark .border-b, .dark .border-b-2 {
+        border-color: #d1d5db !important;
+      }
+      /* Perbaikan: Aturan cetak untuk logo */
+      .printable-logo {
+        width: 150px !important;
+        height: 50px !important;
+        object-fit: contain !important;
       }
     }
     @media screen {
@@ -46,7 +64,6 @@ export default function RootLayout({
   `;
 
   return (
-    // 2. Tambahkan suppressHydrationWarning untuk next-themes
     <html lang="en" suppressHydrationWarning>
       <head>
         <style>{printStyles}</style>
@@ -54,7 +71,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* 3. Bungkus semua konten dengan ThemeProvider */}
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

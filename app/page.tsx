@@ -19,6 +19,8 @@ import { UserNav } from "@/components/UserNav";
 import { TransactionFilters } from "@/components/TransactionFilters";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { Pagination } from "@/components/Pagination";
+import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 // Definisikan opsi jumlah item per halaman
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
@@ -37,14 +39,22 @@ export default async function HomePage({
   if (!user) {
     return redirect("/login");
   }
+  
+  const sortBy = (searchParams?.sortBy as string) || "date";
+  const sortOrder = (searchParams?.sortOrder as string) || "desc";
 
   const currentPage = Number(searchParams?.page) || 1;
   const perPage = Number(searchParams?.perPage) || DEFAULT_ITEMS_PER_PAGE;
   const startRange = (currentPage - 1) * perPage;
   const endRange = startRange + perPage - 1;
 
-  // Query untuk mendapatkan total count, menerapkan filter yang sama
-  let countQuery = supabase.from("transactions_with_details").select("*", { count: "exact", head: true });
+  // Perbaikan: Menentukan kolom sortir yang benar
+  const sortableColumn = sortBy === 'amount' ? 'entries->0->>amount' : sortBy;
+
+  // Query untuk mendapatkan total count, menerapkan filter dan sortir yang sama
+  let countQuery = supabase
+    .from("transactions_with_details")
+    .select("*", { count: "exact", head: true });
   if (searchParams?.startDate) {
     countQuery = countQuery.gte("date", searchParams.startDate as string);
   }
@@ -53,10 +63,11 @@ export default async function HomePage({
   }
   if (searchParams?.accountId) {
     const accountIds = (searchParams.accountId as string).split(',');
-    // Perubahan: Menggunakan operator `overlaps` untuk logika OR
     // @ts-ignore
     countQuery = countQuery.overlaps("account_ids", accountIds);
   }
+  countQuery = countQuery.order(sortableColumn, { ascending: sortOrder === "asc" });
+  
   const { count } = await countQuery;
   const totalPages = Math.ceil((count || 0) / perPage);
 
@@ -64,7 +75,7 @@ export default async function HomePage({
   let dataQuery = supabase
     .from("transactions_with_details")
     .select("*")
-    .order("date", { ascending: false })
+    .order(sortableColumn, { ascending: sortOrder === "asc" })
     .range(startRange, endRange);
 
   if (searchParams?.startDate) {
@@ -75,7 +86,6 @@ export default async function HomePage({
   }
   if (searchParams?.accountId) {
     const accountIds = (searchParams.accountId as string).split(',');
-    // Perubahan: Menggunakan operator `overlaps` untuk logika OR
     // @ts-ignore
     dataQuery = dataQuery.overlaps("account_ids", accountIds);
   }
@@ -86,6 +96,22 @@ export default async function HomePage({
     console.error("Error fetching from view:", error);
     return <p>Gagal mengambil data: {error.message}</p>;
   }
+
+  const createSortUrl = (column: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const newSortOrder = sortBy === column && sortOrder === "asc" ? "desc" : "asc";
+    params.set("sortBy", column);
+    params.set("sortOrder", newSortOrder);
+    params.set("page", "1");
+    return `/?${params.toString()}`;
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
+    }
+    return sortOrder === "asc" ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />;
+  };
 
   return (
     <main className="container mx-auto p-8">
@@ -103,6 +129,7 @@ export default async function HomePage({
             <Link href="/import">Import / Export</Link>
           </Button>
           <AddTransactionButton />
+          <LanguageToggle />
           <ThemeToggleButton />
           <UserNav email={user.email || ""} />
         </div>
@@ -114,10 +141,24 @@ export default async function HomePage({
         <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[120px]">Tanggal</TableHead>
-            <TableHead>Keterangan</TableHead>
-            <TableHead className="text-right w-[170px]">Debit</TableHead>
-            <TableHead className="text-right w-[170px]">Kredit</TableHead>
+            <TableHead className="w-[120px]">
+              <Link href={createSortUrl("date")} className="flex items-center">
+                Tanggal
+                {getSortIcon("date")}
+              </Link>
+            </TableHead>
+            <TableHead>
+              <Link href={createSortUrl("description")} className="flex items-center">
+                Keterangan
+                {getSortIcon("description")}
+              </Link>
+            </TableHead>
+            <TableHead className="text-right w-[170px]">
+              Debit
+            </TableHead>
+            <TableHead className="text-right w-[170px]">
+              Kredit
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

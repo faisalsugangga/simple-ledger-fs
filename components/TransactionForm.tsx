@@ -112,7 +112,14 @@ export function TransactionForm({ isOpen, setIsOpen }: TransactionFormProps) {
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="date" className="text-right">Tanggal</Label>
-            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="col-span-3" />
+            {/* Perbaikan: Mengatur lebar input agar tidak terlalu lebar dengan max-w */}
+            <Input 
+              id="date" 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)} 
+              className="col-span-3 max-w-[150px]" 
+            />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="description" className="text-right">Deskripsi</Label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -22,6 +22,14 @@ export function TransactionFilter_DateOnly() {
     searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined
   );
 
+  // Perbaikan: Tambahkan useEffect untuk menyinkronkan state tanggal dengan URL
+  useEffect(() => {
+    const startDateFromUrl = searchParams.get("startDate");
+    const endDateFromUrl = searchParams.get("endDate");
+    setStartDate(startDateFromUrl ? new Date(startDateFromUrl) : undefined);
+    setEndDate(endDateFromUrl ? new Date(endDateFromUrl) : undefined);
+  }, [searchParams]);
+
   const handleFilter = () => {
     const params = new URLSearchParams(searchParams);
     if (startDate) params.set("startDate", format(startDate, "yyyy-MM-dd"));
@@ -30,7 +38,6 @@ export function TransactionFilter_DateOnly() {
     if (endDate) params.set("endDate", format(endDate, "yyyy-MM-dd"));
     else params.delete("endDate");
     
-    // Memastikan filter akun dihapus
     params.delete("accountId");
 
     router.push(`${pathname}?${params.toString()}`);
