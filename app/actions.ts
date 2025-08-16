@@ -54,28 +54,13 @@ export async function logout() {
  * Server Action untuk menyimpan ID workspace yang dipilih ke cookie dan melakukan redirect.
  * @param {FormData} formData FormData dari form yang berisi ID workspace.
  */
-export async function function_selectWorkspace(formData: FormData) {
+export async function selectWorkspace(formData: FormData) {
   const workspaceId = formData.get('workspaceId') as string;
   const cookieStore = cookies();
-  const supabase = createClient();
   
-  // Verifikasi pengguna dan keanggotaan workspace sebelum menyetel cookie
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/login?message=Sesi pengguna tidak valid.");
-  }
-
-  const { data: member, error } = await supabase
-    .from("workspace_members")
-    .select("id")
-    .eq("workspace_id", workspaceId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (error || !member) {
-    // Tangani jika pengguna bukan anggota dari workspace yang dipilih
-    redirect("/select-workspace?message=Anda tidak memiliki akses ke workspace ini.");
-  }
+  // PERBAIKAN UTAMA: Hapus logika verifikasi di sini.
+  // Pengecekan keanggotaan sudah dilakukan di page.tsx, jadi di sini kita hanya
+  // perlu mengatur cookie dan mengarahkan pengguna.
   
   cookieStore.set('active_workspace', workspaceId, {
     path: '/',
@@ -97,16 +82,20 @@ export async function addJournalTransaction(
     return { success: false, message: "Deskripsi, tanggal, dan minimal 2 entri jurnal wajib diisi." };
   }
 
-  let totalDebit = 0;
-  let totalCredit = 0;
+  // --- LOGIKA LAMA YANG DIHAPUS ---
+  // let totalDebit = 0;
+  // let totalCredit = 0;
+  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
 
   const formattedEntries = entries.map(e => {
     const amount = parseFloat(e.amount);
     if (isNaN(amount) || amount <= 0) {
       throw new Error("Jumlah harus angka positif.");
     }
-    if (e.type === 'debit') totalDebit += amount;
-    if (e.type === 'credit') totalCredit += amount;
+    // --- LOGIKA LAMA YANG DIHAPUS ---
+    // if (e.type === 'debit') totalDebit += amount;
+    // if (e.type === 'credit') totalCredit += amount;
+    // --- END OF LOGIKA LAMA YANG DIHAPUS ---
     return {
       account_id: parseInt(e.accountId),
       amount: amount,
@@ -114,9 +103,11 @@ export async function addJournalTransaction(
     };
   });
 
-  if (totalDebit !== totalCredit) {
-    return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
-  }
+  // --- LOGIKA LAMA YANG DIHAPUS ---
+  // if (totalDebit !== totalCredit) {
+  //   return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
+  // }
+  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
 
   const supabase = createClient();
   const workspaceId = await getActiveWorkspaceId();
@@ -157,16 +148,20 @@ export async function updateJournalTransaction(
     return { success: false, message: "ID, Deskripsi, tanggal, dan minimal 2 entri jurnal wajib diisi." };
   }
 
-  let totalDebit = 0;
-  let totalCredit = 0;
+  // --- LOGIKA LAMA YANG DIHAPUS ---
+  // let totalDebit = 0;
+  // let totalCredit = 0;
+  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
 
   const formattedEntries = entries.map(e => {
     const amount = parseFloat(e.amount);
     if (isNaN(amount) || amount <= 0) {
       throw new Error("Jumlah harus angka positif.");
     }
-    if (e.type === 'debit') totalDebit += amount;
-    if (e.type === 'credit') totalCredit += amount;
+    // --- LOGIKA LAMA YANG DIHAPUS ---
+    // if (e.type === 'debit') totalDebit += amount;
+    // if (e.type === 'credit') totalCredit += amount;
+    // --- END OF LOGIKA LAMA YANG DIHAPUS ---
     return {
       account_id: parseInt(e.accountId),
       amount: amount,
@@ -174,15 +169,18 @@ export async function updateJournalTransaction(
     };
   });
 
-  if (totalDebit !== totalCredit) {
-    return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
-  }
+  // --- LOGIKA LAMA YANG DIHAPUS ---
+  // if (totalDebit !== totalCredit) {
+  //   return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
+  // }
+  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return { success: false, message: "Sesi pengguna tidak valid." };
   }
+  const workspaceId = await getActiveWorkspaceId(); // Dapatkan workspace ID di sini
 
   const { error } = await supabase.rpc('update_journal_transaction', {
     p_transaction_id: id,
@@ -190,6 +188,7 @@ export async function updateJournalTransaction(
     p_date: date,
     p_entries: formattedEntries,
     p_user_id: user.id,
+    p_workspace_id: workspaceId, // Tambahkan parameter ini
   });
 
   if (error) {

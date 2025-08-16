@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { addJournalTransaction, updateJournalTransaction } from "@/app/actions"; // Impor fungsi ini
+import { addJournalTransaction, updateJournalTransaction } from "@/app/actions";
 import { PlusCircle, Trash2 } from "lucide-react";
 import {
   AlertDialog,
@@ -145,7 +145,7 @@ export function TransactionForm({
   const isFormValid =
     description.trim().length > 0 &&
     date.trim().length > 0 &&
-    entries.filter(e => e.accountId).length >= 2;
+    entries.filter(e => e.accountId && (e.debit || e.credit)).length >= 2;
 
   const handleSubmit = async () => {
     if (!isFormValid) {

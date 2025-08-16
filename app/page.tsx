@@ -1,4 +1,3 @@
-// app/page.tsx
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -22,7 +21,7 @@ import { Pagination } from "@/components/Pagination";
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { getActiveWorkspaceId } from "@/app/actions";
-import { TransactionActions } from "@/components/TransactionActions"; // Impor komponen ini
+import { TransactionActions } from "@/components/TransactionActions";
 
 // Definisikan opsi jumlah item per halaman
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
@@ -103,6 +102,16 @@ export default async function HomePage({
     console.error("Error fetching from view:", error);
     return <p>Gagal mengambil data: {error.message}</p>;
   }
+  
+  const checkBalance = (entries: any[]) => {
+    let debit = 0;
+    let credit = 0;
+    entries.forEach(entry => {
+      if (entry.type === 'debit') debit += entry.amount;
+      else if (entry.type === 'credit') credit += entry.amount;
+    });
+    return debit.toFixed(2) === credit.toFixed(2);
+  };
 
   const createSortUrl = (column: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -148,6 +157,12 @@ export default async function HomePage({
         <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[60px] text-center">
+              <Link href={createSortUrl("is_balanced")} className="flex items-center justify-center">
+                Status
+                {getSortIcon("is_balanced")}
+              </Link>
+            </TableHead>
             <TableHead className="w-[120px]">
               <Link href={createSortUrl("date")} className="flex items-center">
                 Tanggal
@@ -166,65 +181,71 @@ export default async function HomePage({
             <TableHead className="text-right w-[170px]">
               Kredit
             </TableHead>
-            {/* Tambah kolom kosong untuk aksi */}
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions && transactions.length > 0 ? (
-            transactions.map((transaction: any) => (
-              <React.Fragment key={transaction.id}>
-                <TableRow className="bg-muted/50 font-medium hover:bg-muted/50 border-b-0">
-                  <TableCell>
-                    {new Date(transaction.date).toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                  <TableCell colSpan={3}>{transaction.description}</TableCell>
-                  {/* Panggil komponen TransactionActions di sini */}
-                  <TableCell>
-                    <TransactionActions transaction={transaction} />
-                  </TableCell>
-                </TableRow>
-                {transaction.entries.map((entry: any, index: number) => (
-                  <TableRow
-                    key={entry.id}
-                    className={
-                      index === transaction.entries.length - 1
-                        ? "border-b-2 border-gray-200 dark:border-gray-800"
-                        : "border-b-0"
-                    }
-                  >
-                    <TableCell></TableCell>
-                    <TableCell
+            transactions.map((transaction: any) => {
+              const isBalanced = checkBalance(transaction.entries);
+              return (
+                <React.Fragment key={transaction.id}>
+                  <TableRow className={
+                    `bg-muted/50 font-medium hover:bg-muted/50 border-b-0 ${isBalanced ? '' : 'text-red-500'}`
+                  }>
+                    <TableCell className="py-3 text-center">
+                      <div className={`size-3 rounded-full mx-auto ${isBalanced ? 'bg-green-500' : 'bg-red-500'}`} />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      {new Date(transaction.date).toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell colSpan={3} className="py-3">{transaction.description}</TableCell>
+                    <TableCell className="py-3">
+                      <TransactionActions transaction={transaction} />
+                    </TableCell>
+                  </TableRow>
+                  {transaction.entries.map((entry: any, index: number) => (
+                    <TableRow
+                      key={entry.id}
                       className={
-                        entry.type === "credit"
-                          ? "pl-8 text-gray-600 dark:text-gray-400"
-                          : "text-gray-600 dark:text-gray-400"
+                        index === transaction.entries.length - 1
+                          ? "border-b-2 border-gray-200 dark:border-gray-800"
+                          : "border-b-0"
                       }
                     >
-                      {entry.account_name}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {entry.type === "debit"
-                        ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
-                        : ""}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {entry.type === "credit"
-                        ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
-                        : ""}
-                    </TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                ))}
-              </React.Fragment>
-            ))
+                      <TableCell></TableCell>
+                      <TableCell colSpan={2}
+                        className={
+                          entry.type === "credit"
+                            ? "pl-8 text-gray-600 dark:text-gray-400"
+                            : "text-gray-600 dark:text-gray-400"
+                        }
+                      >
+                        {entry.account_name}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {entry.type === "debit"
+                          ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
+                          : ""}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {entry.type === "credit"
+                          ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
+                          : ""}
+                      </TableCell>
+                      <TableCell colSpan={1}></TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
+              );
+            })
           ) : (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 Tidak ada transaksi yang cocok dengan filter.
               </TableCell>
             </TableRow>
