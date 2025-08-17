@@ -1,4 +1,4 @@
-// File: app/page.tsx
+// app/page.tsx
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -28,7 +28,11 @@ import { TransactionActions } from "@/components/TransactionActions";
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
 const DEFAULT_ITEMS_PER_PAGE = 10;
 
-export default async function HomePage({ searchParams }: { searchParams?: Record<string, string> }) {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string>;
+}) {
   const supabase = createClient();
 
   const {
@@ -67,9 +71,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Record
 
   try {
     if (accountIds.length > 0) {
-      // Panggil RPC dengan filter akun
+      // Call RPC filter by account IDs
       const { data, error: rpcError } = await supabase.rpc("filter_transactions_by_account_ids", {
-        p_account_ids: JSON.stringify(accountIds),
+        p_account_ids: accountIds,
         p_workspace: activeWorkspaceId,
         p_start_date: startDate,
         p_end_date: endDate,
@@ -81,9 +85,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Record
 
       if (rpcError) throw rpcError;
       transactions = data ?? [];
-      countResult = transactions.length; // Bisa buat fungsi count terpisah untuk optimalisasi
+      countResult = transactions.length; // For production better create separate count function
     } else {
-      // Query tanpa filter akun
+      // Query without filter accounts
       const { data, count, error: err } = await supabase
         .from("transactions_with_details")
         .select("*", { count: "exact" })

@@ -96,7 +96,6 @@ export function TransactionFilters() {
     if (endDate) params.set("endDate", format(endDate, "yyyy-MM-dd"));
 
     if (selectedAccountIds.length > 0) {
-      // Kirim sebagai JSON string array
       params.set("accountId", JSON.stringify(selectedAccountIds.map(id => Number(id))));
     }
 
