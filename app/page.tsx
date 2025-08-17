@@ -1,3 +1,5 @@
+// File: app/page.tsx
+
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -23,99 +25,102 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { getActiveWorkspaceId } from "@/app/actions";
 import { TransactionActions } from "@/components/TransactionActions";
 
-// Definisikan opsi jumlah item per halaman
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
 const DEFAULT_ITEMS_PER_PAGE = 10;
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+export default async function HomePage({ searchParams }: { searchParams?: Record<string, string> }) {
   const supabase = createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return redirect("/login");
-  }
+  if (!user) return redirect("/login");
 
   const activeWorkspaceId = await getActiveWorkspaceId();
-  if (!activeWorkspaceId) {
-    return redirect("/select-workspace");
-  }
-  
+  if (!activeWorkspaceId) return redirect("/select-workspace");
+
   const sortBy = (searchParams?.sortBy as string) || "date";
-  const sortOrder = (searchParams?.sortOrder as string) || "desc";
+  const sortOrderAsc = (searchParams?.sortOrder as string) === "asc";
 
   const currentPage = Number(searchParams?.page) || 1;
   const perPage = Number(searchParams?.perPage) || DEFAULT_ITEMS_PER_PAGE;
   const startRange = (currentPage - 1) * perPage;
-  const endRange = startRange + perPage - 1;
 
-  const sortableColumn = sortBy === 'amount' ? 'entries->0->>amount' : sortBy;
+  const startDate = searchParams?.startDate || null;
+  const endDate = searchParams?.endDate || null;
+  const accountIdsParam = searchParams?.accountId || null;
 
-  let countQuery = supabase
-    .from("transactions_with_details")
-    .select("*", { count: "exact", head: true })
-    .eq('workspace_id', activeWorkspaceId);
-  
-  if (searchParams?.startDate) {
-    countQuery = countQuery.gte("date", searchParams.startDate as string);
-  }
-  if (searchParams?.endDate) {
-    countQuery = countQuery.lte("date", searchParams.endDate as string);
-  }
-  if (searchParams?.accountId) {
-    const accountIds = (searchParams.accountId as string).split(',');
-    // @ts-ignore
-    countQuery = countQuery.overlaps("account_ids", accountIds);
-  }
-  countQuery = countQuery.order(sortableColumn, { ascending: sortOrder === "asc" });
-  
-  const { count } = await countQuery;
-  const totalPages = Math.ceil((count || 0) / perPage);
+  let transactions: any[] = [];
+  let countResult: number | undefined;
+  let error: any;
 
-  let dataQuery = supabase
-    .from("transactions_with_details")
-    .select("*")
-    .eq('workspace_id', activeWorkspaceId)
-    .order(sortableColumn, { ascending: sortOrder === "asc" })
-    .range(startRange, endRange);
-
-  if (searchParams?.startDate) {
-    dataQuery = dataQuery.gte("date", searchParams.startDate as string);
-  }
-  if (searchParams?.endDate) {
-    dataQuery = dataQuery.lte("date", searchParams.endDate as string);
-  }
-  if (searchParams?.accountId) {
-    const accountIds = (searchParams.accountId as string).split(',');
-    // @ts-ignore
-    dataQuery = dataQuery.overlaps("account_ids", accountIds);
+  // Parse account IDs filter
+  let accountIds: number[] = [];
+  if (typeof accountIdsParam === "string") {
+    try {
+      accountIds = JSON.parse(accountIdsParam);
+      if (!Array.isArray(accountIds)) accountIds = [];
+    } catch {
+      accountIds = [];
+    }
   }
 
-  const { data: transactions, error } = await dataQuery;
+  try {
+    if (accountIds.length > 0) {
+      // Panggil RPC dengan filter akun
+      const { data, error: rpcError } = await supabase.rpc("filter_transactions_by_account_ids", {
+        p_account_ids: JSON.stringify(accountIds),
+        p_workspace: activeWorkspaceId,
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_sort_col: sortBy,
+        p_sort_asc: sortOrderAsc,
+        p_offset_val: startRange,
+        p_limit_val: perPage,
+      });
+
+      if (rpcError) throw rpcError;
+      transactions = data ?? [];
+      countResult = transactions.length; // Bisa buat fungsi count terpisah untuk optimalisasi
+    } else {
+      // Query tanpa filter akun
+      const { data, count, error: err } = await supabase
+        .from("transactions_with_details")
+        .select("*", { count: "exact" })
+        .eq("workspace_id", activeWorkspaceId)
+        .gte(startDate ? "date" : "", startDate || "")
+        .lte(endDate ? "date" : "", endDate || "")
+        .order(sortBy, { ascending: sortOrderAsc })
+        .range(startRange, startRange + perPage -1);
+
+      if (err) throw err;
+      transactions = data ?? [];
+      countResult = count ?? transactions.length;
+    }
+  } catch (e) {
+    error = e;
+  }
 
   if (error) {
-    console.error("Error fetching from view:", error);
-    return <p>Gagal mengambil data: {error.message}</p>;
+    console.error("Error fetching transactions:", error);
+    return <p>Gagal mengambil data: {error.message ?? String(error)}</p>;
   }
-  
+
+  const totalPages = Math.ceil((countResult || transactions.length || 0) / perPage);
+
   const checkBalance = (entries: any[]) => {
     let debit = 0;
     let credit = 0;
-    entries.forEach(entry => {
-      if (entry.type === 'debit') debit += entry.amount;
-      else if (entry.type === 'credit') credit += entry.amount;
+    entries.forEach(e => {
+      if (e.type === "debit") debit += e.amount;
+      else if (e.type === "credit") credit += e.amount;
     });
     return debit.toFixed(2) === credit.toFixed(2);
   };
 
   const createSortUrl = (column: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const newSortOrder = sortBy === column && sortOrder === "asc" ? "desc" : "asc";
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    const newSortOrder = sortBy === column && sortOrderAsc ? "desc" : "asc";
     params.set("sortBy", column);
     params.set("sortOrder", newSortOrder);
     params.set("page", "1");
@@ -123,10 +128,12 @@ export default async function HomePage({
   };
 
   const getSortIcon = (column: string) => {
-    if (sortBy !== column) {
-      return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
-    }
-    return sortOrder === "asc" ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />;
+    if (sortBy !== column) return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
+    return sortOrderAsc ? (
+      <ChevronUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ChevronDown className="ml-2 h-4 w-4" />
+    );
   };
 
   return (
@@ -135,15 +142,9 @@ export default async function HomePage({
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Jurnal Transaksi</h1>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
-            <Link href="/dashboard">Dashboard</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/accounts">Daftar Akun</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/import">Import / Export</Link>
-          </Button>
+          <Button asChild variant="outline"><Link href="/dashboard">Dashboard</Link></Button>
+          <Button asChild variant="outline"><Link href="/accounts">Daftar Akun</Link></Button>
+          <Button asChild variant="outline"><Link href="/import">Import / Export</Link></Button>
           <AddTransactionButton />
           <LanguageToggle />
           <ThemeToggleButton />
@@ -151,7 +152,7 @@ export default async function HomePage({
         </div>
       </div>
 
-      <TransactionFilters />
+      <TransactionFilters searchParams={searchParams} />
 
       <Table>
         <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
@@ -159,106 +160,66 @@ export default async function HomePage({
           <TableRow>
             <TableHead className="w-[60px] text-center">
               <Link href={createSortUrl("is_balanced")} className="flex items-center justify-center">
-                Status
-                {getSortIcon("is_balanced")}
+                Status{getSortIcon("is_balanced")}
               </Link>
             </TableHead>
             <TableHead className="w-[120px]">
               <Link href={createSortUrl("date")} className="flex items-center">
-                Tanggal
-                {getSortIcon("date")}
+                Tanggal{getSortIcon("date")}
               </Link>
             </TableHead>
             <TableHead>
               <Link href={createSortUrl("description")} className="flex items-center">
-                Keterangan
-                {getSortIcon("description")}
+                Keterangan{getSortIcon("description")}
               </Link>
             </TableHead>
-            <TableHead className="text-right w-[170px]">
-              Debit
-            </TableHead>
-            <TableHead className="text-right w-[170px]">
-              Kredit
-            </TableHead>
+            <TableHead className="text-right w-[170px]">Debit</TableHead>
+            <TableHead className="text-right w-[170px]">Kredit</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
-          {transactions && transactions.length > 0 ? (
-            transactions.map((transaction: any) => {
+          {transactions.length > 0 ? (
+            transactions.map(transaction => {
               const isBalanced = checkBalance(transaction.entries);
               return (
                 <React.Fragment key={transaction.id}>
-                  <TableRow className={
-                    `bg-muted/50 font-medium hover:bg-muted/50 border-b-0 ${isBalanced ? '' : 'text-red-500'}`
-                  }>
+                  <TableRow className={`bg-muted/50 font-medium hover:bg-muted/50 border-b-0 ${isBalanced ? "" : "text-red-500"}`}>
                     <TableCell className="py-3 text-center">
-                      <div className={`size-3 rounded-full mx-auto ${isBalanced ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <div className={`size-3 rounded-full mx-auto ${isBalanced ? "bg-green-500" : "bg-red-500"}`} />
                     </TableCell>
-                    <TableCell className="py-3">
-                      {new Date(transaction.date).toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </TableCell>
+                    <TableCell className="py-3">{new Date(transaction.date).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}</TableCell>
                     <TableCell colSpan={3} className="py-3">{transaction.description}</TableCell>
-                    <TableCell className="py-3">
-                      <TransactionActions transaction={transaction} />
-                    </TableCell>
+                    <TableCell className="py-3"><TransactionActions transaction={transaction} /></TableCell>
                   </TableRow>
-                  {transaction.entries.map((entry: any, index: number) => (
-                    <TableRow
-                      key={entry.id}
-                      className={
-                        index === transaction.entries.length - 1
-                          ? "border-b-2 border-gray-200 dark:border-gray-800"
-                          : "border-b-0"
-                      }
-                    >
+
+                  {transaction.entries.map((entry:any, idx:number) => (
+                    <TableRow key={entry.id} className={idx === transaction.entries.length -1 ? "border-b-2 border-gray-200 dark:border-gray-800" : "border-b-0"}>
                       <TableCell></TableCell>
-                      <TableCell colSpan={2}
-                        className={
-                          entry.type === "credit"
-                            ? "pl-8 text-gray-600 dark:text-gray-400"
-                            : "text-gray-600 dark:text-gray-400"
-                        }
-                      >
-                        {entry.account_name}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.type === "debit"
-                          ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
-                          : ""}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.type === "credit"
-                          ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}`
-                          : ""}
-                      </TableCell>
-                      <TableCell colSpan={1}></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className={entry.type === "credit" ? "pl-8 text-gray-600 dark:text-gray-400" : "text-gray-600 dark:text-gray-400"}>{entry.account_name}</TableCell>
+                      <TableCell className="text-right font-mono">{entry.type==="debit" ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}` : ""}</TableCell>
+                      <TableCell className="text-right font-mono">{entry.type==="credit" ? `Rp ${Number(entry.amount).toLocaleString("id-ID")}` : ""}</TableCell>
+                      <TableCell></TableCell>
                     </TableRow>
                   ))}
                 </React.Fragment>
               );
             })
           ) : (
-            <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
-                Tidak ada transaksi yang cocok dengan filter.
-              </TableCell>
-            </TableRow>
+            <TableRow><TableCell colSpan={6} className="h-24 text-center">Tidak ada transaksi yang cocok dengan filter.</TableCell></TableRow>
           )}
         </TableBody>
+
       </Table>
-      
-      <Pagination 
-        totalPages={totalPages} 
-        currentPage={currentPage} 
-        perPage={perPage} 
-        perPageOptions={ITEMS_PER_PAGE_OPTIONS}
-      />
+
+      <Pagination totalPages={totalPages} currentPage={currentPage} perPage={perPage} perPageOptions={ITEMS_PER_PAGE_OPTIONS} />
+
     </main>
   );
 }

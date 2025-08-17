@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,16 +35,42 @@ export function TransactionFilters() {
   const [endDate, setEndDate] = useState<Date | undefined>(
     searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined
   );
-  
+
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(
-    searchParams.get("accountId")?.split(',') || []
+    (() => {
+      try {
+        const param = searchParams.get("accountId");
+        if (param) {
+          const parsed = JSON.parse(param);
+          if (Array.isArray(parsed)) return parsed.map(String);
+        }
+        return [];
+      } catch {
+        return [];
+      }
+    })()
   );
   const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false);
 
-  // Perbaikan: Tambahkan useEffect untuk menyinkronkan state dengan URL
   useEffect(() => {
-    const accountIdsFromUrl = searchParams.get("accountId")?.split(',') || [];
-    setSelectedAccountIds(accountIdsFromUrl);
+    const accountParam = searchParams.get("accountId");
+    if (accountParam) {
+      try {
+        const parsed = JSON.parse(accountParam);
+        if (Array.isArray(parsed)) setSelectedAccountIds(parsed.map(String));
+        else setSelectedAccountIds([]);
+      } catch {
+        setSelectedAccountIds([]);
+      }
+    } else {
+      setSelectedAccountIds([]);
+    }
+
+    const start = searchParams.get("startDate");
+    setStartDate(start ? new Date(start) : undefined);
+
+    const end = searchParams.get("endDate");
+    setEndDate(end ? new Date(end) : undefined);
   }, [searchParams]);
 
   useEffect(() => {
@@ -64,23 +90,24 @@ export function TransactionFilters() {
   };
 
   const handleFilter = () => {
-    const params = new URLSearchParams(searchParams);
-    if (startDate) params.set("startDate", format(startDate, "yyyy-MM-dd"));
-    else params.delete("startDate");
+    const params = new URLSearchParams();
 
+    if (startDate) params.set("startDate", format(startDate, "yyyy-MM-dd"));
     if (endDate) params.set("endDate", format(endDate, "yyyy-MM-dd"));
-    else params.delete("endDate");
-    
-    // Perubahan: Menyimpan array ID akun sebagai string terpisah koma
-    if (selectedAccountIds.length > 0) params.set("accountId", selectedAccountIds.join(','));
-    else params.delete("accountId");
+
+    if (selectedAccountIds.length > 0) {
+      // Kirim sebagai JSON string array
+      params.set("accountId", JSON.stringify(selectedAccountIds.map(id => Number(id))));
+    }
 
     router.push(`${pathname}?${params.toString()}`);
   };
 
   const clearFilters = () => {
-    const params = new URLSearchParams();
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(pathname);
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSelectedAccountIds([]);
   };
 
   return (
@@ -90,10 +117,13 @@ export function TransactionFilters() {
           <PopoverTrigger asChild>
             <Button
               variant={"outline"}
-              className={cn("w-[240px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+              className={cn(
+                "w-[240px] justify-start text-left font-normal",
+                !startDate && "text-muted-foreground"
+              )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {startDate ? format(startDate, "PPP") : <span>Tanggal Mulai</span>}
+              {startDate ? startDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : <span>Tanggal Mulai</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -105,10 +135,13 @@ export function TransactionFilters() {
           <PopoverTrigger asChild>
             <Button
               variant={"outline"}
-              className={cn("w-[240px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}
+              className={cn(
+                "w-[240px] justify-start text-left font-normal",
+                !endDate && "text-muted-foreground"
+              )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {endDate ? format(endDate, "PPP") : <span>Tanggal Akhir</span>}
+              {endDate ? endDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : <span>Tanggal Akhir</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -117,7 +150,7 @@ export function TransactionFilters() {
         </Popover>
       </div>
 
-      {/* Perubahan: Menggunakan Popover untuk multi-select akun */}
+      {/* Multi-select akun dengan Popover */}
       <Popover open={isAccountPopoverOpen} onOpenChange={setIsAccountPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -138,10 +171,7 @@ export function TransactionFilters() {
             <CommandEmpty>Tidak ada akun ditemukan.</CommandEmpty>
             <CommandGroup>
               {accounts.map(acc => (
-                <CommandItem
-                  key={acc.id}
-                  onSelect={() => handleAccountToggle(String(acc.id))}
-                >
+                <CommandItem key={acc.id} onSelect={() => handleAccountToggle(String(acc.id))}>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       checked={selectedAccountIds.includes(String(acc.id))}
@@ -155,7 +185,7 @@ export function TransactionFilters() {
           </Command>
         </PopoverContent>
       </Popover>
-      
+
       <Button onClick={handleFilter}>Terapkan Filter</Button>
       <Button variant="ghost" onClick={clearFilters}>Bersihkan</Button>
     </div>
