@@ -45,7 +45,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-lg bg-card p-8 shadow-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <Image
-            src="/logo/stie-indonesia-malang.png"
+            src="/logo/simple-ledger-logo.png"
             alt="Logo STIE Indonesia Malang"
             width={150}
             height={50}
@@ -53,9 +53,9 @@ export default function LoginPage() {
             priority
           />
           <h1 className="text-xl font-bold text-card-foreground">
-            Sistem Manajemen Keuangan Terpusat
+            Simple Ledger
           </h1>
-          <p className="text-md mt-1 text-muted-foreground">STIE Indonesia Malang</p>
+          <p className="text-md mt-1 text-muted-foreground">Clear Records, Better Decisions</p>
         </div>
 
         <form action={handleSubmit}>
