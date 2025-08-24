@@ -19,10 +19,8 @@ interface UserNavProps {
 }
 
 export function UserNav({ email }: UserNavProps) {
-  // Fungsi untuk menangani logout tanpa mereset tema
+  // Fungsi untuk menangani logout
   const handleLogout = async () => {
-    // Baris setTheme("light"); telah dihapus.
-    // Sekarang hanya memanggil server action untuk logout.
     await logout();
   };
 
@@ -54,7 +52,6 @@ export function UserNav({ email }: UserNavProps) {
           <Link href="/help">Bantuan</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {/* Mengganti <form> dengan onClick yang memanggil handleLogout */}
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           Logout
         </DropdownMenuItem>

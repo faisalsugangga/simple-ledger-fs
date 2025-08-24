@@ -21,11 +21,12 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-export default async function DashboardPage({
-  searchParams,
-}: {
+// Mendefinisikan tipe props secara terpisah
+type DashboardPageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
