@@ -21,14 +21,13 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-// --- PERBAIKAN DI BAWAH INI ---
-// Mendefinisikan tipe props secara eksplisit untuk menghindari ambiguitas
+// Tipe props untuk halaman ini
 type DashboardPageProps = {
+  params: {};
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-// --- AKHIR PERBAIKAN ---
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,8 +35,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     return redirect("/login");
   }
 
-  const startDate = searchParams?.startDate as string | undefined;
-  const endDate = searchParams?.endDate as string | undefined;
+  // --- PERBAIKAN PENGGUNAAN SEARCH PARAMS ---
+  // Memastikan kita hanya mengambil nilai string pertama jika ada array
+  const getSearchParam = (param: string | string[] | undefined): string | undefined => {
+    return Array.isArray(param) ? param[0] : param;
+  };
+
+  const startDate = getSearchParam(searchParams.startDate);
+  const endDate = getSearchParam(searchParams.endDate);
+  // --- AKHIR PERBAIKAN ---
 
   const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
     start_date: startDate ? `${startDate}T00:00:00Z` : null,
