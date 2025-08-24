@@ -47,10 +47,10 @@ export default async function HelpPage() {
                     <li><strong>Debit:</strong> Untuk apa uang digunakan (Beban bertambah, Aset bertambah).</li>
                     <li><strong>Kredit:</strong> Dari mana uang berasal (Pendapatan bertambah, Aset berkurang).</li>
                   </ul>
-                  <p className="font-medium pt-2">Contoh: "Pembayaran Gaji Dosen Rp 8.000.000 via Bank"</p>
+                  <p className="font-medium pt-2">Contoh: &quot;Pembayaran Gaji Dosen Rp 8.000.000 via Bank&quot;</p>
                    <ul className="list-disc pl-5">
-                    <li>**Debit:** Akun 'Beban Gaji' bertambah Rp 8.000.000 (uang digunakan untuk membayar gaji).</li>
-                    <li>**Kredit:** Akun 'Bank' berkurang Rp 8.000.000 (uang berasal dari rekening bank).</li>
+                    <li>**Debit:** Akun &apos;Beban Gaji&apos; bertambah Rp 8.000.000 (uang digunakan untuk membayar gaji).</li>
+                    <li>**Kredit:** Akun &apos;Bank&apos; berkurang Rp 8.000.000 (uang berasal dari rekening bank).</li>
                   </ul>
                 </div>
               </AccordionContent>
@@ -84,16 +84,16 @@ export default async function HelpPage() {
               <AccordionContent>
                 <ol className="list-decimal pl-5 space-y-2">
                   <li><strong>Siapkan Daftar Akun:</strong> Sebelum memulai, pastikan semua akun yang Anda butuhkan sudah terdaftar di halaman <Link href="/accounts" className="underline text-blue-600">Daftar Akun</Link>. Anda hanya perlu melakukan ini sekali di awal atau saat ada akun baru.</li>
-                  <li><strong>Catat Transaksi Baru:</strong> Di halaman utama, klik "Tambah Transaksi". Isi tanggal, deskripsi, lalu masukkan entri-entri jurnal. Pastikan total Debit dan Kredit seimbang sebelum menyimpan.</li>
+                  <li><strong>Catat Transaksi Baru:</strong> Di halaman utama, klik &quot;Tambah Transaksi&quot;. Isi tanggal, deskripsi, lalu masukkan entri-entri jurnal. Pastikan total Debit dan Kredit seimbang sebelum menyimpan.</li>
                   <li><strong>Lihat Hasilnya:</strong> Setelah disimpan, transaksi baru akan muncul di Jurnal Transaksi. Nilai total di halaman Dashboard dan Laporan juga akan otomatis ter-update.</li>
                 </ol>
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-4">
-                <AccordionTrigger>Kenapa Transaksi Saya "Tidak Seimbang"?</AccordionTrigger>
+                <AccordionTrigger>Kenapa Transaksi Saya &quot;Tidak Seimbang&quot;?</AccordionTrigger>
                 <AccordionContent>
-                    <p>Setiap transaksi harus memiliki total Debit yang sama persis dengan total Kredit. Jika form Anda menunjukkan status "Tidak Seimbang", periksa kembali angka yang Anda masukkan di setiap baris. Pastikan jumlah semua angka di kolom Debit sama dengan jumlah semua angka di kolom Kredit.</p>
+                    <p>Setiap transaksi harus memiliki total Debit yang sama persis dengan total Kredit. Jika form Anda menunjukkan status &quot;Tidak Seimbang&quot;, periksa kembali angka yang Anda masukkan di setiap baris. Pastikan jumlah semua angka di kolom Debit sama dengan jumlah semua angka di kolom Kredit.</p>
                 </AccordionContent>
             </AccordionItem>
 

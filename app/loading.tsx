@@ -1,6 +1,5 @@
-import { Separator } from "@/components/ui/separator";
-
 export default function Loading() {
+  // Konten loading tetap sama, hanya import Separator yang dihapus
   return (
     <main className="container mx-auto p-8 animate-pulse">
       {/* Header Skeleton */}

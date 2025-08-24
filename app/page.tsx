@@ -28,6 +28,22 @@ import { TransactionActions } from "@/components/TransactionActions";
 const ITEMS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
 const DEFAULT_ITEMS_PER_PAGE = 10;
 
+// Definisikan tipe untuk entri jurnal dan transaksi
+type JournalEntry = {
+  id: number;
+  account_name: string;
+  type: 'debit' | 'credit';
+  amount: number;
+};
+
+type Transaction = {
+  id: number;
+  date: string;
+  description: string;
+  entries: JournalEntry[];
+};
+
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -54,9 +70,9 @@ export default async function HomePage({
   const endDate = searchParams?.endDate || null;
   const accountIdsParam = searchParams?.accountId || null;
 
-  let transactions: any[] = [];
+  let transactions: Transaction[] = [];
   let countResult: number | undefined;
-  let error: any;
+  let error: unknown;
 
   // Parse account IDs filter
   let accountIds: number[] = [];
@@ -98,7 +114,7 @@ export default async function HomePage({
         .range(startRange, startRange + perPage -1);
 
       if (err) throw err;
-      transactions = data ?? [];
+      transactions = data as Transaction[] ?? [];
       countResult = count ?? transactions.length;
     }
   } catch (e) {
@@ -107,12 +123,14 @@ export default async function HomePage({
 
   if (error) {
     console.error("Error fetching transactions:", error);
-    return <p>Gagal mengambil data: {error.message ?? String(error)}</p>;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return <p>Gagal mengambil data: {errorMessage}</p>;
   }
+
 
   const totalPages = Math.ceil((countResult || transactions.length || 0) / perPage);
 
-  const checkBalance = (entries: any[]) => {
+  const checkBalance = (entries: JournalEntry[]) => {
     let debit = 0;
     let credit = 0;
     entries.forEach(e => {
@@ -156,7 +174,7 @@ export default async function HomePage({
         </div>
       </div>
 
-      <TransactionFilters searchParams={searchParams} />
+      <TransactionFilters />
 
       <Table>
         <TableCaption>Daftar semua jurnal transaksi.</TableCaption>
@@ -202,7 +220,7 @@ export default async function HomePage({
                     <TableCell className="py-3"><TransactionActions transaction={transaction} /></TableCell>
                   </TableRow>
 
-                  {transaction.entries.map((entry:any, idx:number) => (
+                  {transaction.entries.map((entry: JournalEntry, idx: number) => (
                     <TableRow key={entry.id} className={idx === transaction.entries.length -1 ? "border-b-2 border-gray-200 dark:border-gray-800" : "border-b-0"}>
                       <TableCell></TableCell>
                       <TableCell></TableCell>

@@ -13,6 +13,21 @@ type JournalEntry = {
   type: 'debit' | 'credit';
 };
 
+// Tipe untuk detail entri transaksi dari database
+type TransactionEntryDetail = {
+  type: 'debit' | 'credit';
+  account_name: string;
+  amount: number;
+};
+
+// Tipe untuk transaksi yang diekspor
+type TransactionForExport = {
+  date: string;
+  description: string;
+  entries: TransactionEntryDetail[];
+};
+
+
 /**
  * Mendapatkan ID workspace yang aktif dari cookie.
  * @returns {Promise<string | null>} ID workspace atau null jika tidak ada.
@@ -35,8 +50,6 @@ export async function login(formData: FormData): Promise<{ success: boolean; mes
   if (error) {
     return { success: false, message: "Email atau password salah." };
   }
-  // Berhasil login, kembalikan pesan sukses
-  // Fungsi redirect() dipindahkan ke sisi klien (di dalam login/page.tsx)
   return { success: true, message: "Login berhasil!" };
 }
 
@@ -45,7 +58,6 @@ export async function login(formData: FormData): Promise<{ success: boolean; mes
  */
 export async function logout() {
   const supabase = createClient();
-  // Hapus cookie workspace saat logout
   cookies().delete('active_workspace');
   await supabase.auth.signOut();
   redirect("/login");
@@ -58,17 +70,13 @@ export async function logout() {
 export async function selectWorkspace(formData: FormData) {
   const workspaceId = formData.get('workspaceId') as string;
   const cookieStore = cookies();
-  
-  // PERBAIKAN UTAMA: Hapus logika verifikasi di sini.
-  // Pengecekan keanggotaan sudah dilakukan di page.tsx, jadi di sini kita hanya
-  // perlu mengatur cookie dan mengarahkan pengguna.
-  
+
   cookieStore.set('active_workspace', workspaceId, {
     path: '/',
     maxAge: 60 * 60 * 24 * 7, // 1 minggu
     httpOnly: true,
   });
-  
+
   revalidatePath('/');
   redirect('/');
 }
@@ -78,7 +86,7 @@ export async function addJournalTransaction(
   date: string,
   entries: JournalEntry[]
 ): Promise<{ success: boolean; message: string }> {
-  
+
   if (!description || !date || entries.length < 2) {
     return { success: false, message: "Deskripsi, tanggal, dan minimal 2 entri jurnal wajib diisi." };
   }
@@ -100,13 +108,13 @@ export async function addJournalTransaction(
   if (!workspaceId) {
     return { success: false, message: "Tidak ada workspace yang dipilih." };
   }
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return { success: false, message: "Sesi pengguna tidak valid." };
   }
 
-  const { data, error } = await supabase.rpc('create_transaction_with_entries', {
+  const { error } = await supabase.rpc('create_transaction_with_entries', {
     p_description: description,
     p_date: date,
     p_entries: formattedEntries,
@@ -123,7 +131,6 @@ export async function addJournalTransaction(
   return { success: true, message: "Transaksi berhasil disimpan!" };
 }
 
-// Server Action untuk mengubah transaksi
 export async function updateJournalTransaction(
   id: number,
   description: string,
@@ -151,7 +158,7 @@ export async function updateJournalTransaction(
   if (!user) {
     return { success: false, message: "Sesi pengguna tidak valid." };
   }
-  const workspaceId = await getActiveWorkspaceId(); // Dapatkan workspace ID di sini
+  const workspaceId = await getActiveWorkspaceId();
 
   const { error } = await supabase.rpc('update_journal_transaction', {
     p_transaction_id: id,
@@ -159,7 +166,7 @@ export async function updateJournalTransaction(
     p_date: date,
     p_entries: formattedEntries,
     p_user_id: user.id,
-    p_workspace_id: workspaceId, // Tambahkan parameter ini
+    p_workspace_id: workspaceId,
   });
 
   if (error) {
@@ -171,12 +178,6 @@ export async function updateJournalTransaction(
   return { success: true, message: "Transaksi berhasil diubah!" };
 }
 
-/**
- * Mengambil data transaksi untuk diekspor ke file.
- * @param {string} [startDate] Tanggal mulai.
- * @param {string} [endDate] Tanggal akhir.
- * @returns {Promise<{ success: boolean; data?: any[]; error?: string }>} Hasil operasi.
- */
 export async function getTransactionsForExport(startDate?: string, endDate?: string) {
   const supabase = createClient();
   const workspaceId = await getActiveWorkspaceId();
@@ -202,10 +203,10 @@ export async function getTransactionsForExport(startDate?: string, endDate?: str
     return { success: false, error: error.message };
   }
 
-  const formattedData = data.map(tx => {
-    const debitEntry = tx.entries.find((e: any) => e.type === 'debit');
-    const creditEntry = tx.entries.find((e: any) => e.type === 'credit');
-    
+  const formattedData = data.map((tx: TransactionForExport) => {
+    const debitEntry = tx.entries.find((e: TransactionEntryDetail) => e.type === 'debit');
+    const creditEntry = tx.entries.find((e: TransactionEntryDetail) => e.type === 'credit');
+
     return {
       'Tanggal': new Date(tx.date).toLocaleDateString('id-ID'),
       'Deskripsi': tx.description,
