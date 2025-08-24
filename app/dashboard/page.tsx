@@ -21,12 +21,12 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-// Mendefinisikan tipe props secara terpisah
-type DashboardPageProps = {
-  searchParams?: { [key: string]: string | string[] | undefined };
-};
-
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+// PERBAIKAN: Hapus definisi 'type DashboardPageProps' dan definisikan tipe untuk searchParams secara inline.
+export default async function DashboardPage({ 
+  searchParams 
+}: { 
+  searchParams?: { [key: string]: string | string[] | undefined } 
+}) {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
