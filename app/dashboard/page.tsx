@@ -21,7 +21,6 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-// PERBAIKAN FINAL: Menggunakan tipe yang sama persis dengan app/page.tsx yang sudah terbukti bekerja.
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -117,7 +116,7 @@ export default async function DashboardPage({
               <CardHeader>
                 <CardTitle>Neraca</CardTitle>
                 <CardDescription>Posisi Keuangan pada akhir periode</CardDescription>
-              </Header>
+              </CardHeader> {/* <-- PERBAIKAN: Tag penutup yang salah telah diganti dari </Header> menjadi </CardHeader> */}
               <CardContent>
                 <div className="font-semibold mb-2">Aset</div>
                 <div className="flex justify-between mb-4"><span>Total Aset</span><span className="font-mono">{formatCurrency(totals.asset)}</span></div>
