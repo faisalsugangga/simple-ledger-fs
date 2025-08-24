@@ -21,11 +21,11 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-// PERBAIKAN: Hapus definisi 'type DashboardPageProps' dan definisikan tipe untuk searchParams secara inline.
-export default async function DashboardPage({ 
-  searchParams 
-}: { 
-  searchParams?: { [key: string]: string | string[] | undefined } 
+// PERBAIKAN: Menggunakan tipe yang lebih sederhana dan standar untuk searchParams
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const supabase = createClient();
 
