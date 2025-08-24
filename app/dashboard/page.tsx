@@ -36,7 +36,6 @@ export default async function DashboardPage({
   const startDate = searchParams?.startDate as string | undefined;
   const endDate = searchParams?.endDate as string | undefined;
 
-  // LAKUKAN PERBAIKAN DI SINI: Tentukan tipe data secara eksplisit saat memanggil RPC
   const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
     start_date: startDate ? `${startDate}T00:00:00Z` : null,
     end_date: endDate ? `${endDate}T23:59:59Z` : null,

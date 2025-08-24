@@ -13,15 +13,12 @@ import { Button } from "./ui/button";
 import { CircleUser } from "lucide-react";
 import { logout } from "@/app/actions";
 import Link from "next/link";
-import { useTheme } from "next-themes";
 
 interface UserNavProps {
   email: string;
 }
 
 export function UserNav({ email }: UserNavProps) {
-  const { setTheme } = useTheme();
-
   // Fungsi untuk menangani logout tanpa mereset tema
   const handleLogout = async () => {
     // Baris setTheme("light"); telah dihapus.
