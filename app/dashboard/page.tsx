@@ -22,11 +22,12 @@ const formatCurrency = (value: number | null | undefined) => {
 };
 
 // --- PERBAIKAN DI BAWAH INI ---
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string>;
-}) {
+// Mendefinisikan tipe props secara eksplisit untuk menghindari ambiguitas
+type DashboardPageProps = {
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
 // --- AKHIR PERBAIKAN ---
   const supabase = createClient();
 
@@ -35,8 +36,8 @@ export default async function DashboardPage({
     return redirect("/login");
   }
 
-  const startDate = searchParams?.startDate;
-  const endDate = searchParams?.endDate;
+  const startDate = searchParams?.startDate as string | undefined;
+  const endDate = searchParams?.endDate as string | undefined;
 
   const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
     start_date: startDate ? `${startDate}T00:00:00Z` : null,
