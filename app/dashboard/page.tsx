@@ -24,7 +24,7 @@ const formatCurrency = (value: number | null | undefined) => {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const supabase = createClient();
 
