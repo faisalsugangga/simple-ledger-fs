@@ -21,11 +21,13 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
+// --- PERBAIKAN DI BAWAH INI ---
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Record<string, string>;
 }) {
+// --- AKHIR PERBAIKAN ---
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -116,7 +118,7 @@ export default async function DashboardPage({
               <CardHeader>
                 <CardTitle>Neraca</CardTitle>
                 <CardDescription>Posisi Keuangan pada akhir periode</CardDescription>
-              </CardHeader> {/* <-- PERBAIKAN: Tag penutup yang salah telah diganti dari </Header> menjadi </CardHeader> */}
+              </CardHeader>
               <CardContent>
                 <div className="font-semibold mb-2">Aset</div>
                 <div className="flex justify-between mb-4"><span>Total Aset</span><span className="font-mono">{formatCurrency(totals.asset)}</span></div>
