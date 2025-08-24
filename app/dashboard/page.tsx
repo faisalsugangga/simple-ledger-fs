@@ -21,29 +21,27 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-// Tipe props untuk halaman ini
+// --- PERBAIKAN DI BAWAH INI ---
 type DashboardPageProps = {
-  params: {};
+  params: Record<string, never>; // Menggunakan Record<string, never> untuk objek kosong
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+// --- AKHIR PERBAIKAN ---
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return redirect("/login");
   }
-
-  // --- PERBAIKAN PENGGUNAAN SEARCH PARAMS ---
-  // Memastikan kita hanya mengambil nilai string pertama jika ada array
+  
   const getSearchParam = (param: string | string[] | undefined): string | undefined => {
     return Array.isArray(param) ? param[0] : param;
   };
 
   const startDate = getSearchParam(searchParams.startDate);
   const endDate = getSearchParam(searchParams.endDate);
-  // --- AKHIR PERBAIKAN ---
 
   const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
     start_date: startDate ? `${startDate}T00:00:00Z` : null,
