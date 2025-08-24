@@ -49,7 +49,7 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <Image
             src="/logo/simple-ledger-logo.png"
-            alt="Logo STIE Indonesia Malang"
+            alt="Logo"
             width={150}
             height={50}
             className="mb-4"
@@ -65,12 +65,12 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Alamat Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="emailanda@domain.com"
                 required
                 disabled={isLoading}
               />

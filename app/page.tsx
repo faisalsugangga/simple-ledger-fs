@@ -168,7 +168,6 @@ export default async function HomePage({
           <Button asChild variant="outline"><Link href="/accounts">Daftar Akun</Link></Button>
           <Button asChild variant="outline"><Link href="/import">Import / Export</Link></Button>
           <AddTransactionButton />
-          <LanguageToggle />
           <ThemeToggleButton />
           <UserNav email={user.email || ""} />
         </div>
