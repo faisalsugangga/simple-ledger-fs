@@ -21,11 +21,11 @@ const formatCurrency = (value: number | null | undefined) => {
   }).format(value);
 };
 
-// PERBAIKAN: Menggunakan tipe yang lebih sederhana dan standar untuk searchParams
+// PERBAIKAN FINAL: Menggunakan tipe yang sama persis dengan app/page.tsx yang sudah terbukti bekerja.
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) {
   const supabase = createClient();
 
@@ -34,8 +34,8 @@ export default async function DashboardPage({
     return redirect("/login");
   }
 
-  const startDate = searchParams?.startDate as string | undefined;
-  const endDate = searchParams?.endDate as string | undefined;
+  const startDate = searchParams?.startDate;
+  const endDate = searchParams?.endDate;
 
   const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
     start_date: startDate ? `${startDate}T00:00:00Z` : null,
@@ -117,7 +117,7 @@ export default async function DashboardPage({
               <CardHeader>
                 <CardTitle>Neraca</CardTitle>
                 <CardDescription>Posisi Keuangan pada akhir periode</CardDescription>
-              </CardHeader>
+              </Header>
               <CardContent>
                 <div className="font-semibold mb-2">Aset</div>
                 <div className="flex justify-between mb-4"><span>Total Aset</span><span className="font-mono">{formatCurrency(totals.asset)}</span></div>
