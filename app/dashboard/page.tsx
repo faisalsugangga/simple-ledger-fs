@@ -4,7 +4,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { UserNav } from "@/components/UserNav";
 import { AddTransactionButton } from "@/components/AddTransactionButton";
 import { Separator } from "@/components/ui/separator";
@@ -24,19 +31,24 @@ const formatCurrency = (value: number | null | undefined) => {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams?: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined };
 }) {
+  // Pastikan searchParams sudah ter-resolve jika berupa Promise
+  const params = await Promise.resolve(searchParams);
+
   const supabase = createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return redirect("/login");
   }
 
-  const startDate = searchParams?.startDate;
-  const endDate = searchParams?.endDate;
+  const startDate = params?.startDate;
+  const endDate = params?.endDate;
 
-  const { data: summary, error } = await supabase.rpc('get_financial_summary_by_date', {
+  const { data: summary, error } = await supabase.rpc("get_financial_summary_by_date", {
     start_date: startDate ? `${startDate}T00:00:00Z` : null,
     end_date: endDate ? `${endDate}T23:59:59Z` : null,
   });
@@ -47,19 +59,28 @@ export default async function DashboardPage({
   }
 
   const totals = {
-    asset: summary?.find(s => s.account_type === 'asset')?.total || 0,
-    liability: summary?.find(s => s.account_type === 'liability')?.total || 0,
-    equity: summary?.find(s => s.account_type === 'equity')?.total || 0,
-    revenue: summary?.find(s => s.account_type === 'revenue')?.total || 0,
-    expense: summary?.find(s => s.account_type === 'expense')?.total || 0,
+    asset: summary?.find((s) => s.account_type === "asset")?.total || 0,
+    liability: summary?.find((s) => s.account_type === "liability")?.total || 0,
+    equity: summary?.find((s) => s.account_type === "equity")?.total || 0,
+    revenue: summary?.find((s) => s.account_type === "revenue")?.total || 0,
+    expense: summary?.find((s) => s.account_type === "expense")?.total || 0,
   };
 
   const netIncome = totals.revenue - totals.expense;
   const totalLiabilitiesAndEquity = totals.liability + totals.equity + netIncome;
 
-  const periodString = startDate && endDate
-    ? `Periode ${new Date(startDate).toLocaleDateString("id-ID", { day: '2-digit', month: 'long', year: 'numeric' })} s/d ${new Date(endDate).toLocaleDateString("id-ID", { day: '2-digit', month: 'long', year: 'numeric' })}`
-    : "Periode Keseluruhan";
+  const periodString =
+    startDate && endDate
+      ? `Periode ${new Date(startDate).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })} s/d ${new Date(endDate).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })}`
+      : "Periode Keseluruhan";
 
   return (
     <>
@@ -68,33 +89,53 @@ export default async function DashboardPage({
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Dashboard & Laporan</h1>
             <div className="flex items-center gap-2">
-                <Button asChild variant="outline"><Link href="/">Jurnal Transaksi</Link></Button>
-                <Button asChild variant="outline"><Link href="/accounts">Daftar Akun</Link></Button>
-                <PrintButton />
-                <AddTransactionButton />
-                <ThemeToggleButton />
-                <UserNav email={user.email || ''} />
+              <Button asChild variant="outline">
+                <Link href="/">Jurnal Transaksi</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/accounts">Daftar Akun</Link>
+              </Button>
+              <PrintButton />
+              <AddTransactionButton />
+              <ThemeToggleButton />
+              <UserNav email={user.email || ""} />
             </div>
           </div>
-          
+
           <TransactionFilter_DateOnly />
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 my-6">
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Aset</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{formatCurrency(totals.asset)}</div></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Aset</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totals.asset)}</div>
+              </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Kewajiban</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{formatCurrency(totals.liability)}</div></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Kewajiban</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totals.liability)}</div>
+              </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{formatCurrency(totals.revenue)}</div></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totals.revenue)}</div>
+              </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Beban</CardTitle></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{formatCurrency(totals.expense)}</div></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Beban</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totals.expense)}</div>
+              </CardContent>
             </Card>
           </div>
 
@@ -105,10 +146,19 @@ export default async function DashboardPage({
                 <CardDescription>{periodString}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between"><span>Pendapatan</span><span>{formatCurrency(totals.revenue)}</span></div>
-                <div className="flex justify-between"><span>Beban</span><span>({formatCurrency(totals.expense)})</span></div>
+                <div className="flex justify-between">
+                  <span>Pendapatan</span>
+                  <span>{formatCurrency(totals.revenue)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Beban</span>
+                  <span>({formatCurrency(totals.expense)})</span>
+                </div>
                 <Separator />
-                <div className="flex justify-between font-bold"><span>Laba / Rugi Bersih</span><span>{formatCurrency(netIncome)}</span></div>
+                <div className="flex justify-between font-bold">
+                  <span>Laba / Rugi Bersih</span>
+                  <span>{formatCurrency(netIncome)}</span>
+                </div>
               </CardContent>
             </Card>
 
@@ -116,20 +166,43 @@ export default async function DashboardPage({
               <CardHeader>
                 <CardTitle>Neraca</CardTitle>
                 <CardDescription>Posisi Keuangan pada akhir periode</CardDescription>
-              </CardHeader> {/* <-- PERBAIKAN: Tag penutup yang salah telah diganti dari </Header> menjadi </CardHeader> */}
+              </CardHeader>
               <CardContent>
                 <div className="font-semibold mb-2">Aset</div>
-                <div className="flex justify-between mb-4"><span>Total Aset</span><span className="font-mono">{formatCurrency(totals.asset)}</span></div>
+                <div className="flex justify-between mb-4">
+                  <span>Total Aset</span>
+                  <span className="font-mono">{formatCurrency(totals.asset)}</span>
+                </div>
                 <div className="font-semibold mb-2">Kewajiban dan Ekuitas</div>
-                <div className="flex justify-between"><span>Kewajiban</span><span className="font-mono">{formatCurrency(totals.liability)}</span></div>
-                <div className="flex justify-between"><span>Ekuitas Awal</span><span className="font-mono">{formatCurrency(totals.equity)}</span></div>
-                <div className="flex justify-between"><span>Laba Ditahan</span><span className="font-mono">{formatCurrency(netIncome)}</span></div>
-                <Separator className="my-2"/>
-                <div className="flex justify-between font-medium"><span>Total Kewajiban & Ekuitas</span><span className="font-mono">{formatCurrency(totalLiabilitiesAndEquity)}</span></div>
+                <div className="flex justify-between">
+                  <span>Kewajiban</span>
+                  <span className="font-mono">{formatCurrency(totals.liability)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Ekuitas Awal</span>
+                  <span className="font-mono">{formatCurrency(totals.equity)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Laba Ditahan</span>
+                  <span className="font-mono">{formatCurrency(netIncome)}</span>
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between font-medium">
+                  <span>Total Kewajiban & Ekuitas</span>
+                  <span className="font-mono">{formatCurrency(totalLiabilitiesAndEquity)}</span>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-center font-bold text-lg">
-                <span className={totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'text-green-600' : 'text-red-600'}>
-                  {totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
+                <span
+                  className={
+                    totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2)
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                >
+                  {totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2)
+                    ? "SEIMBANG"
+                    : "TIDAK SEIMBANG"}
                 </span>
               </CardFooter>
             </Card>
@@ -145,7 +218,12 @@ export default async function DashboardPage({
               <p className="text-gray-600">Laporan Keuangan Gabungan</p>
             </div>
             <div className="text-right">
-               <Image src="/logo/stie-indonesia-malang.png" alt="Logo STIE Indonesia Malang" width={150} height={50} />
+              <Image
+                src="/logo/stie-indonesia-malang.png"
+                alt="Logo STIE Indonesia Malang"
+                width={150}
+                height={50}
+              />
               <p className="text-sm text-gray-500 mt-2">{periodString}</p>
             </div>
           </div>
@@ -155,10 +233,23 @@ export default async function DashboardPage({
               <h2 className="text-xl font-semibold mb-4 text-center">Laporan Laba Rugi</h2>
               <table className="w-full">
                 <tbody>
-                  <tr><td className="py-2">Pendapatan</td><td className="text-right">{formatCurrency(totals.revenue)}</td></tr>
-                  <tr><td className="py-2">Beban</td><td className="text-right">({formatCurrency(totals.expense)})</td></tr>
-                  <tr><td colSpan={2}><hr className="my-2"/></td></tr>
-                  <tr className="font-bold"><td className="py-2">Laba / Rugi Bersih</td><td className="text-right">{formatCurrency(netIncome)}</td></tr>
+                  <tr>
+                    <td className="py-2">Pendapatan</td>
+                    <td className="text-right">{formatCurrency(totals.revenue)}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2">Beban</td>
+                    <td className="text-right">({formatCurrency(totals.expense)})</td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2}>
+                      <hr className="my-2" />
+                    </td>
+                  </tr>
+                  <tr className="font-bold">
+                    <td className="py-2">Laba / Rugi Bersih</td>
+                    <td className="text-right">{formatCurrency(netIncome)}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -167,25 +258,88 @@ export default async function DashboardPage({
               <h2 className="text-xl font-semibold mb-4 text-center">Neraca</h2>
               <table className="w-full">
                 <tbody>
-                  <tr className="font-semibold"><td colSpan={2} className="pb-2">Aset</td></tr>
-                  <tr><td className="py-2 pl-4">Total Aset</td><td className="text-right font-mono">{formatCurrency(totals.asset)}</td></tr>
-                  <tr className="font-semibold"><td colSpan={2} className="pt-4 pb-2">Kewajiban dan Ekuitas</td></tr>
-                  <tr><td className="py-2 pl-4">Kewajiban</td><td className="text-right font-mono">{formatCurrency(totals.liability)}</td></tr>
-                  <tr><td className="py-2 pl-4">Ekuitas Awal</td><td className="text-right font-mono">{formatCurrency(totals.equity)}</td></tr>
-                  <tr><td className="py-2 pl-4">Laba Ditahan</td><td className="text-right font-mono">{formatCurrency(netIncome)}</td></tr>
-                  <tr><td colSpan={2}><hr className="my-2"/></td></tr>
-                  <tr className="font-medium"><td className="py-2">Total Kewajiban & Ekuitas</td><td className="text-right font-mono">{formatCurrency(totalLiabilitiesAndEquity)}</td></tr>
+                  <tr className="font-semibold">
+                    <td colSpan={2} className="pb-2">
+                      Aset
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4">Total Aset</td>
+                    <td className="text-right font-mono">{formatCurrency(totals.asset)}</td>
+                  </tr>
+
+                  <tr className="font-semibold">
+                    <td colSpan={2} className="pt-4 pb-2">
+                      Kewajiban dan Ekuitas
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td className="py-2 pl-4">Kewajiban</td>
+                    <td className="text-right font-mono">{formatCurrency(totals.liability)}</td>
+                  </tr>
+
+                  <tr>
+                    <td className="py-2 pl-4">Ekuitas Awal</td>
+                    <td className="text-right font-mono">{formatCurrency(totals.equity)}</td>
+                  </tr>
+
+                  <tr>
+                    <td className="py-2 pl-4">Laba Ditahan</td>
+                    <td className="text-right font-mono">{formatCurrency(netIncome)}</td>
+                  </tr>
+
+                  <tr>
+                    <td colSpan={2}>
+                      <hr className="my-2" />
+                    </td>
+                  </tr>
+
+                  <tr className="font-medium">
+                    <td className="py-2">Total Kewajiban & Ekuitas</td>
+
+                    <td className="text-right font-mono">{formatCurrency(totalLiabilitiesAndEquity)}</td>
+
+                  </tr>
+
                 </tbody>
+
               </table>
-               <div className="text-center pt-6 font-bold text-lg">
-                  <span className={totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'text-green-600' : 'text-red-600'}>
-                    {totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2) ? 'SEIMBANG' : 'TIDAK SEIMBANG'}
-                  </span>
-                </div>
+
+              <div className="text-center pt-6 font-bold text-lg">
+
+                <span
+
+                  className={
+
+                    totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2)
+
+                      ? "text-green-600"
+
+                      : "text-red-600"
+
+                  }
+
+                >
+
+                  {totals.asset.toFixed(2) === totalLiabilitiesAndEquity.toFixed(2)
+
+                    ? "SEIMBANG"
+
+                    : "TIDAK SEIMBANG"}
+
+                </span>
+
+              </div>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
+
     </>
   );
 }
