@@ -1,3 +1,4 @@
+// components/LanguageToggle.tsx
 "use client";
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -29,8 +30,6 @@ export function LanguageToggle() {
     // Gabungkan kembali segmen-segmen dan navigasi
     router.push(`/${segments.join('/')}`);
   };
-
-  const currentLocale = pathname.split('/')[1];
 
   return (
     <DropdownMenu>

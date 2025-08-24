@@ -11,15 +11,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { createClient } from "@/lib/supabase/client"; // <- PASTIKAN IMPORT DARI SINI
+import { createClient } from "@/lib/supabase/client";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
-import { TransactionForm } from "./TransactionForm.tsx";
+import { TransactionForm } from "./TransactionForm";
 
-type Transaction = { id: number; description: string; amount: number; category_id: number, created_at: string };
+// Tipe ini disesuaikan agar cocok dengan struktur data lengkap dari app/page.tsx
+type Transaction = {
+  id: number;
+  description: string;
+  date: string;
+  entries: {
+    id: number;
+    account_id: number;
+    amount: number;
+    type: "debit" | "credit";
+  }[];
+};
 
 export function TransactionActions({ transaction }: { transaction: Transaction }) {
-  const supabase = createClient(); // <- PASTIKAN ADA BARIS INI
+  const supabase = createClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const handleDelete = async () => {
@@ -27,10 +38,10 @@ export function TransactionActions({ transaction }: { transaction: Transaction }
       return;
     }
 
-    const { error } = await supabase
-      .from("transactions")
-      .delete()
-      .eq("id", transaction.id);
+    // Menggunakan RPC untuk memastikan entri jurnal terkait juga terhapus
+    const { error } = await supabase.rpc('delete_transaction_and_entries', { 
+      p_transaction_id: transaction.id 
+    });
 
     if (error) {
       toast.error("Gagal menghapus data: " + error.message);
@@ -42,9 +53,9 @@ export function TransactionActions({ transaction }: { transaction: Transaction }
 
   return (
     <>
-      <TransactionForm 
-        isOpen={isEditDialogOpen} 
-        setIsOpen={setIsEditDialogOpen} 
+      <TransactionForm
+        isOpen={isEditDialogOpen}
+        setIsOpen={setIsEditDialogOpen}
         transactionToEdit={transaction}
       />
 
