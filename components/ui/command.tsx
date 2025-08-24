@@ -25,6 +25,7 @@ const Command = React.forwardRef<
 
 Command.displayName = CommandPrimitive.displayName
 
+// Berikan tipe yang sesuai untuk props
 interface CommandDialogProps extends DialogProps {}
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
@@ -132,7 +133,7 @@ CommandItem.displayName = CommandPrimitive.Item.displayName
 const CommandShortcut = ({
   className,
   ...props
-}: React.ComponentProps<"span">) => {
+}: React.HTMLAttributes<HTMLSpanElement>) => {
   return (
     <span
       className={cn(
@@ -143,6 +144,7 @@ const CommandShortcut = ({
     />
   )
 }
+
 
 CommandShortcut.displayName = "CommandShortcut"
 

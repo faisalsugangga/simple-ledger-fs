@@ -5,7 +5,6 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Download, UploadCloud, ShieldCheck, AlertTriangle } from "lucide-react";
@@ -13,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 // Tipe data untuk baris Excel dan data yang akan diimpor
 type ExcelRow = {
-  Tanggal?: string | number;
+  Tanggal?: string | number | Date;
   Deskripsi?: string;
   'Akun Debit'?: string;
   'Akun Kredit'?: string;
@@ -24,6 +23,13 @@ type TransactionToImport = {
     transaction_date: string;
     description: string;
     entries: { account_name: string; type: 'debit' | 'credit'; amount: number }[];
+};
+
+// Tipe untuk hasil dari RPC
+type RpcResult = {
+  status: 'success' | 'error';
+  row_number: number;
+  message: string;
 };
 
 export function ImportForm() {
@@ -113,7 +119,7 @@ export function ImportForm() {
           
           if (!rowHasError) {
             validData.push({
-              transaction_date: new Date(Tanggal as any).toISOString().split('T')[0],
+              transaction_date: new Date(Tanggal as Date).toISOString().split('T')[0],
               description: Deskripsi as string,
               entries: [
                 { account_name: AkunDebit as string, type: 'debit', amount: Jumlah as number },
@@ -130,8 +136,9 @@ export function ImportForm() {
           setPreviewData(validData);
           toast.success("Validasi berhasil! Silakan periksa data di bawah sebelum mengimpor.");
         }
-      } catch (error: any) {
-        toast.error(`Gagal memproses file: ${error.message}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak dikenal";
+        toast.error(`Gagal memproses file: ${errorMessage}`);
       } finally {
         setIsLoading(false);
       }
@@ -155,10 +162,11 @@ export function ImportForm() {
       });
 
       if (error) throw error;
-
+      
+      const rpcResults = result as RpcResult[];
       let successCount = 0;
       let errorCount = 0;
-      result.forEach((res: any) => {
+      rpcResults.forEach((res: RpcResult) => {
         if (res.status === 'success') {
           successCount++;
         } else {
@@ -167,6 +175,7 @@ export function ImportForm() {
         }
       });
 
+
       if (successCount > 0) {
         toast.success(`${successCount} transaksi berhasil diimpor!`);
       }
@@ -174,8 +183,9 @@ export function ImportForm() {
         setTimeout(() => window.location.href = "/", 1000);
       }
 
-    } catch (error: any) {
-      toast.error(`Terjadi kesalahan saat impor: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak dikenal";
+      toast.error(`Terjadi kesalahan saat impor: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { selectWorkspace } from "@/app/actions";
-import { Loader2 } from "lucide-react";
+
+// Definisikan tipe untuk data yang akan diterima
+interface WorkspaceMember {
+  workspaces: {
+    id: string;
+    name: string;
+  } | null;
+  role: string;
+}
 
 export default async function SelectWorkspacePage() {
   const supabase = createClient();
@@ -13,7 +21,7 @@ export default async function SelectWorkspacePage() {
   if (!user) {
     return redirect("/login");
   }
-  
+
   const { data, error } = await supabase
     .from("workspace_members")
     .select("workspaces(id, name), role")
@@ -27,14 +35,15 @@ export default async function SelectWorkspacePage() {
       </main>
     );
   }
-  
+
   const userWorkspaces = (data || [])
-    .filter(member => member.workspaces !== null)
-    .map((member: any) => ({
-      id: member.workspaces.id,
-      name: member.workspaces.name,
+    .filter((member: WorkspaceMember) => member.workspaces !== null)
+    .map((member: WorkspaceMember) => ({
+      id: member.workspaces!.id,
+      name: member.workspaces!.name,
       role: member.role,
     }));
+
 
   if (userWorkspaces.length === 0) {
     return (

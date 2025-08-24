@@ -41,8 +41,9 @@ export function ExportForm() {
 
       toast.success("Data berhasil diekspor!");
 
-    } catch (error: any) {
-      toast.error(`Gagal mengekspor data: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak dikenal";
+      toast.error(`Gagal mengekspor data: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
