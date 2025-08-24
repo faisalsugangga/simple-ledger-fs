@@ -24,19 +24,22 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  const handleSubmit = async (formData: FormData) => {
+  // PERUBAHAN 1: Ganti cara fungsi ini dipanggil
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Mencegah form submit default
     setIsLoading(true);
     setErrorMessage("");
 
+    const formData = new FormData(event.currentTarget);
     const result = await login(formData);
 
     if (result.success) {
       toast.success(result.message);
-      // PENTING: Lakukan pengalihan di sisi klien
+      // Menggunakan router.push() akan mengarahkan setelah notifikasi tampil
       router.push("/select-workspace");
     } else {
       setErrorMessage(result.message);
-      setIsLoading(false);
+      setIsLoading(false); // Hentikan loading jika gagal
     }
   };
 
@@ -58,7 +61,8 @@ export default function LoginPage() {
           <p className="text-md mt-1 text-muted-foreground">Clear Records, Better Decisions</p>
         </div>
 
-        <form action={handleSubmit}>
+        {/* PERUBAHAN 2: Ganti `action` menjadi `onSubmit` */}
+        <form onSubmit={handleSubmit}>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="email">Email</Label>

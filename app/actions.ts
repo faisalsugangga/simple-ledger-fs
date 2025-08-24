@@ -35,8 +35,9 @@ export async function login(formData: FormData): Promise<{ success: boolean; mes
   if (error) {
     return { success: false, message: "Email atau password salah." };
   }
-  // Setelah login berhasil, arahkan pengguna ke halaman pemilihan workspace
-  redirect("/select-workspace");
+  // Berhasil login, kembalikan pesan sukses
+  // Fungsi redirect() dipindahkan ke sisi klien (di dalam login/page.tsx)
+  return { success: true, message: "Login berhasil!" };
 }
 
 /**
@@ -82,32 +83,17 @@ export async function addJournalTransaction(
     return { success: false, message: "Deskripsi, tanggal, dan minimal 2 entri jurnal wajib diisi." };
   }
 
-  // --- LOGIKA LAMA YANG DIHAPUS ---
-  // let totalDebit = 0;
-  // let totalCredit = 0;
-  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
-
   const formattedEntries = entries.map(e => {
     const amount = parseFloat(e.amount);
     if (isNaN(amount) || amount <= 0) {
       throw new Error("Jumlah harus angka positif.");
     }
-    // --- LOGIKA LAMA YANG DIHAPUS ---
-    // if (e.type === 'debit') totalDebit += amount;
-    // if (e.type === 'credit') totalCredit += amount;
-    // --- END OF LOGIKA LAMA YANG DIHAPUS ---
     return {
       account_id: parseInt(e.accountId),
       amount: amount,
       type: e.type,
     };
   });
-
-  // --- LOGIKA LAMA YANG DIHAPUS ---
-  // if (totalDebit !== totalCredit) {
-  //   return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
-  // }
-  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
 
   const supabase = createClient();
   const workspaceId = await getActiveWorkspaceId();
@@ -148,32 +134,17 @@ export async function updateJournalTransaction(
     return { success: false, message: "ID, Deskripsi, tanggal, dan minimal 2 entri jurnal wajib diisi." };
   }
 
-  // --- LOGIKA LAMA YANG DIHAPUS ---
-  // let totalDebit = 0;
-  // let totalCredit = 0;
-  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
-
   const formattedEntries = entries.map(e => {
     const amount = parseFloat(e.amount);
     if (isNaN(amount) || amount <= 0) {
       throw new Error("Jumlah harus angka positif.");
     }
-    // --- LOGIKA LAMA YANG DIHAPUS ---
-    // if (e.type === 'debit') totalDebit += amount;
-    // if (e.type === 'credit') totalCredit += amount;
-    // --- END OF LOGIKA LAMA YANG DIHAPUS ---
     return {
       account_id: parseInt(e.accountId),
       amount: amount,
       type: e.type,
     };
   });
-
-  // --- LOGIKA LAMA YANG DIHAPUS ---
-  // if (totalDebit !== totalCredit) {
-  //   return { success: false, message: "Total Debit dan Kredit tidak seimbang." };
-  // }
-  // --- END OF LOGIKA LAMA YANG DIHAPUS ---
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
